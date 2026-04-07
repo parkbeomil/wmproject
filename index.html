@@ -664,6 +664,67 @@
     border-color: rgba(245, 200, 66, 0.4);
     box-shadow: 0 8px 16px rgba(245, 200, 66, 0.2);
   }
+
+  /* ── 10분 타이머 ── */
+  #countdown-timer {
+    position: fixed;
+    top: 18px;
+    right: 22px;
+    z-index: 9997;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(15, 21, 37, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 7px 14px;
+    backdrop-filter: blur(8px);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    color: #9aa3c2;
+    user-select: none;
+    pointer-events: none;
+    transition: color 0.4s, border-color 0.4s;
+  }
+  #countdown-timer .timer-icon {
+    font-size: 0.75rem;
+    opacity: 0.6;
+  }
+  #countdown-timer .timer-display {
+    min-width: 48px;
+    text-align: center;
+  }
+  /* 남은 시간 2분 이하 - 경고 */
+  /* 5분 이하 - 노란색 테두리 */
+  #countdown-timer.warn-5 {
+    color: #f5c842;
+    border-color: rgba(245, 200, 66, 0.7);
+  }
+  /* 3분 이하 - 오렌지색 테두리 */
+  #countdown-timer.warn-3 {
+    color: #ff9f4a;
+    border-color: rgba(255, 159, 74, 0.75);
+  }
+  /* 1분 이하 - 노란색 깜빡이는 테두리 */
+  #countdown-timer.warn-1 {
+    color: #f5c842;
+    animation: timer-border-blink 0.8s ease-in-out infinite;
+  }
+  @keyframes timer-border-blink {
+    0%, 100% { border-color: rgba(245, 200, 66, 0.85); }
+    50%       { border-color: rgba(245, 200, 66, 0.08); }
+  }
+  /* 타임아웃 */
+  #countdown-timer.timeout {
+    color: #ff6b6b;
+    border-color: rgba(255, 107, 107, 0.5);
+    animation: timer-pulse 1s ease-in-out infinite;
+  }
+  @keyframes timer-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
 </style>
 </head>
 <body>
@@ -1426,6 +1487,55 @@
       closeGameModalFn();
     }
   });
+
+  /* 10분 카운트다운 타이머 - DOM 준비 후 즉시 시작 */
+  document.addEventListener('DOMContentLoaded', function() {
+    var TOTAL_SECONDS = 10 * 60; /* 600초 */
+    var remaining = TOTAL_SECONDS;
+    var timerEl = document.getElementById('countdown-timer');
+    var displayEl = document.getElementById('timerDisplay');
+
+    if (!timerEl || !displayEl) return;
+
+    function formatTime(sec) {
+      var m = Math.floor(sec / 60);
+      var s = sec % 60;
+      return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+    }
+
+    function setWarnClass(cls) {
+      timerEl.classList.remove('warn-5', 'warn-3', 'warn-1', 'timeout');
+      if (cls) timerEl.classList.add(cls);
+    }
+
+    function tick() {
+      displayEl.textContent = formatTime(remaining);
+
+      if (remaining <= 0) {
+        /* 타임아웃 상태 */
+        setWarnClass('timeout');
+        displayEl.textContent = '00:00';
+        return;
+      }
+
+      /* 단계별 경고 클래스 적용 */
+      if (remaining <= 60) {
+        setWarnClass('warn-1'); /* 1분 이하 - 노란 깜빡임 */
+      } else if (remaining <= 180) {
+        setWarnClass('warn-3'); /* 3분 이하 - 오렌지 */
+      } else if (remaining <= 300) {
+        setWarnClass('warn-5'); /* 5분 이하 - 노란색 */
+      } else {
+        setWarnClass(null);     /* 정상 */
+      }
+
+      remaining--;
+      setTimeout(tick, 1000);
+    }
+
+    /* 페이지 로드 즉시 시작 */
+    tick();
+  });
 </script>
 
 <!-- Game Modal -->
@@ -1458,6 +1568,12 @@
       </div>
     </div>
   </div>
+</div>
+
+<!-- 10분 타이머 -->
+<div id="countdown-timer">
+  <span class="timer-icon">&#9201;</span>
+  <span class="timer-display" id="timerDisplay">10:00</span>
 </div>
 
 </body>
