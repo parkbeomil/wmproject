@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>수학 갤러그</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#111; display:flex; justify-content:center; align-items:center; min-height:100vh; }
+canvas { display:block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="800" height="600"></canvas>
+<script>
+// ============================================================
+//  수학 갤러그 – HTML5 Canvas 버전
+// ============================================================
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const W = 800, H = 600;
+
+// ── 유틸 ────────────────────────────────────────────────────
+const rnd    = (a,b) => a+Math.random()*(b-a);
+const rndInt = (a,b) => Math.floor(rnd(a,b+1));
+const shuffle = a=>{ for(let i=a.length-1;i>0;i--){const j=rndInt(0,i);[a[i],a[j]]=[a[j],a[i]];} return a; };
+
+// ── 입력 ────────────────────────────────────────────────────
+const keys={}, jp={};
+window.addEventListener('keydown',e=>{
+  if(!keys[e.code]) jp[e.code]=true;
+  keys[e.code]=true;
+  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+});
+window.addEventListener('keyup',e=>{ keys[e.code]=false; });
+const clearJP = ()=>{ for(const k in jp) delete jp[k]; };
+
+// ── 개념 로직 ────────────────────────────────────────────────
+const DIVISOR_POOL  = [12,15,16,18,20,21,24,28,30,32,36,40,42,45,48];
+const MULTIPLE_POOL = [2,3,4,5,6,7,8,9];
+
+function getDivisors(n){ const d=[]; for(let i=1;i<=n;i++) if(n%i===0) d.push(i); return d; }
+const isValid     = (n,tgt,c) => c==='약수' ? tgt%n===0 : n%tgt===0;
+const avoidList   = (tgt,lo,hi,c) => { const a=[]; for(let n=lo;n<=hi;n++) if(isValid(n,tgt,c)) a.push(n); return a; };
+
+function sampleTargets(c,cnt){
+  if(c==='약수'){
+    const pool=[...DIVISOR_POOL];
+    shuffle(pool);
+    return pool.slice(0,cnt).sort((a,b)=>getDivisors(a).length-getDivisors(b).length);
+  }
+  const pool=[...MULTIPLE_POOL];
+  shuffle(pool);
+  return pool.slice(0,cnt).sort((a,b)=>b-a);
+}
+
+// ── 별 배경 ─────────────────────────────────────────────────
+const stars = Array.from({length:80},()=>({
+  x:Math.random()*W, y:Math.random()*H,
+  spd:rnd(0.2,1.3), r:rndInt(1,2), br:rndInt(80,220)
+}));
+function updateStars(){
+  for(const s of stars){
+    s.y+=s.spd;
+    if(s.y>H){s.x=Math.random()*W;s.y=0;s.br=rndInt(80,220);}
+    ctx.fillStyle=`rgb(${s.br},${s.br},${s.br})`;
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
+  }
+}
+
+// ── 엔티티 ──────────────────────────────────────────────────
+class Player {
+  constructor(){
+    this.x=W/2; this.y=H-65;
+    this.lives=3; this.score=0;
+    this.lastShot=0; this.invUntil=0;
+  }
+  get rect(){ return{x:this.x-10,y:this.y-20,w:20,h:38}; }
+  move(){
+    const spd=5;
+    if(keys['ArrowLeft']  &&this.x>30)    this.x-=spd;
+    if(keys['ArrowRight'] &&this.x<W-30)  this.x+=spd;
+    if(keys['ArrowUp']    &&this.y>60)    this.y-=spd;
+    if(keys['ArrowDown']  &&this.y<H-40)  this.y+=spd;
+  }
+  shoot(now){
+    if(now-this.lastShot>=290){this.lastShot=now; return new PBullet(this.x,this.y-21);}
+    return null;
+  }
+  takeHit(now){
+    if(now<this.invUntil) return false;
+    this.lives--; this.invUntil=now+2000; return true;
+  }
+  draw(now){
+    if(now<this.invUntil&&Math.floor(now/80)%2===0) return;
+    const cx=this.x,cy=this.y;
+    // 동체
+    ctx.fillStyle='#00c8fa';
+    ctx.beginPath();
+    ctx.moveTo(cx,cy-21); ctx.lineTo(cx-22,cy+21); ctx.lineTo(cx+22,cy+21);
+    ctx.closePath(); ctx.fill();
+    // 날개
+    ctx.fillStyle='#0096c8';
+    ctx.beginPath(); ctx.moveTo(cx-22,cy+21); ctx.lineTo(cx-32,cy+8); ctx.lineTo(cx-8,cy+4); ctx.closePath(); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(cx+22,cy+21); ctx.lineTo(cx+32,cy+8); ctx.lineTo(cx+8,cy+4); ctx.closePath(); ctx.fill();
+    // 엔진
+    ctx.fillStyle='#ffd700';
+    ctx.beginPath(); ctx.arc(cx,cy+2,8,0,Math.PI*2); ctx.fill();
+    // 추진구
+    ctx.fillStyle='#ff9100';
+    ctx.beginPath(); ctx.roundRect(cx-6,cy+18,12,7,3); ctx.fill();
+  }
+}
+
+class PBullet {
+  constructor(x,y){ this.x=x; this.y=y; this.alive=true; }
+  get rect(){ return{x:this.x-3,y:this.y-9,w:6,h:18}; }
+  update(){ this.y-=12; if(this.y<-20) this.alive=false; }
+  draw(){
+    ctx.fillStyle='#ffd700';
+    ctx.beginPath(); ctx.roundRect(this.x-3,this.y-9,6,18,3); ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.roundRect(this.x-1,this.y-7,2,14,1); ctx.fill();
+  }
+}
+
+class EBullet {
+  constructor(x,y){ this.x=x; this.y=y; this.alive=true; }
+  get rect(){ return{x:this.x-3,y:this.y-6,w:6,h:12}; }
+  update(){ this.y+=4; if(this.y>H+20) this.alive=false; }
+  draw(){
+    ctx.fillStyle='#ff9100';
+    ctx.beginPath(); ctx.roundRect(this.x-3,this.y-6,6,12,3); ctx.fill();
+  }
+}
+
+class Enemy {
+  constructor(num,isAvoid,bx,by){
+    this.num=num; this.isAvoid=isAvoid;
+    this.bx=bx; this.by=by; this.x=bx; this.y=by;
+    this.alive=true;
+    this.phase=rnd(0,Math.PI*2);
+    this.spd=rnd(0.6,1.1); this.baseSpd=this.spd;
+  }
+  update(t,descent){ this.x=this.bx+38*Math.sin(this.spd*t+this.phase); this.y=this.by+descent; }
+  get rect(){ return{x:this.x-27,y:this.y-20,w:54,h:40}; }
+  draw(){
+    const cx=this.x, cy=this.y;
+    ctx.fillStyle=this.isAvoid?'#ff3333':'#22cc22';
+    ctx.beginPath(); ctx.roundRect(cx-27,cy-20,54,40,8); ctx.fill();
+    ctx.strokeStyle=this.isAvoid?'#cc0000':'#00aa00'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.roundRect(cx-27,cy-20,54,40,8); ctx.stroke();
+    ctx.fillStyle='#fff'; ctx.font='bold 20px sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(String(this.num),cx,cy);
+  }
+}
+
+class Particle {
+  constructor(x,y,col){
+    this.x=x; this.y=y; this.col=col;
+    this.vx=rnd(-3.5,3.5); this.vy=rnd(-5,1);
+    this.life=rndInt(22,45); this.r=rndInt(2,5);
+  }
+  update(){ this.x+=this.vx; this.y+=this.vy; this.vy+=0.15; this.life--; }
+  draw(){
+    if(this.life<=0) return;
+    const a=Math.min(255,this.life*6)/255;
+    ctx.globalAlpha=a; ctx.fillStyle=this.col;
+    ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+  }
+}
+
+class FloatText {
+  constructor(t,x,y,col,life=80){ this.t=t;this.x=x;this.y=y;this.col=col;this.life=life;this.total=life; }
+  update(){ this.y-=1.1; this.life--; }
+  draw(){
+    if(this.life<=0) return;
+    ctx.globalAlpha=Math.max(0,this.life/this.total);
+    ctx.fillStyle=this.col; ctx.font='bold 16px sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(this.t,this.x,this.y);
+    ctx.globalAlpha=1;
+  }
+}
+
+// ── 충돌 ────────────────────────────────────────────────────
+function hits(a,b){ return a.x<b.x+b.w&&a.x+a.w>b.x&&a.y<b.y+b.h&&a.y+a.h>b.y; }
+
+// ── 레벨 빌드 ────────────────────────────────────────────────
+function buildLevels(concept){
+  const tgts=sampleTargets(concept,3);
+  return tgts.map(param=>{
+    const divs=getDivisors(param).length;
+    const hi=Math.min(60,param*2);
+    const total=concept==='약수'?Math.max(18,divs+10):18;
+    const cols=total>18?7:6;
+    const rows=Math.ceil(total/cols);
+    return{concept,param,lo:1,hi,cols,rows};
+  });
+}
+
+function buildEnemies(data,maxTotal){
+  const{concept,param,lo,hi,cols,rows}=data;
+  const total=cols*rows;
+  const avoidSet=new Set(avoidList(param,lo,hi,concept));
+  let avoids=[...avoidSet].filter(n=>n>=lo&&n<=hi);
+  let nonAvoids=[...Array(hi-lo+1)].map((_,i)=>lo+i).filter(n=>!avoidSet.has(n));
+  shuffle(nonAvoids);
+  const nA=Math.min(avoids.length,total);
+  const nN=Math.min(nonAvoids.length,total-nA);
+  let pool=[...avoids.slice(0,nA),...nonAvoids.slice(0,nN)];
+  shuffle(pool);
+  if(maxTotal&&pool.length>maxTotal){
+    const ap=pool.filter(n=>avoidSet.has(n));
+    const np=pool.filter(n=>!avoidSet.has(n));
+    const kn=Math.max(1,Math.min(np.length,Math.floor(maxTotal/2)));
+    const ka=maxTotal-kn;
+    shuffle(ap); shuffle(np);
+    pool=[...np.slice(0,kn),...ap.slice(0,ka)];
+    shuffle(pool);
+  }
+  const gapX=85, gapY=55;
+  const startX=(W-(cols-1)*gapX)/2;
+  const startY=88;
+  return pool.map((num,i)=>{
+    const c=i%cols, r=Math.floor(i/cols);
+    const stagger=r%2===1?gapX/2:0;
+    return new Enemy(num,avoidSet.has(num),startX+c*gapX+stagger,startY+r*gapY);
+  });
+}
+
+// ── UI 헬퍼 ─────────────────────────────────────────────────
+function rrect(x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+}
+function txt(t,x,y,col,sz=18,align='center',bold=false){
+  ctx.fillStyle=col; ctx.font=(bold?'bold ':'')+sz+'px sans-serif';
+  ctx.textAlign=align; ctx.textBaseline='middle'; ctx.fillText(t,x,y);
+}
+
+// ── 화면 그리기 ───────────────────────────────────────────────
+function drawTitle(){
+  ctx.fillStyle='#0a0a28'; ctx.fillRect(0,0,W,H);
+  updateStars();
+  txt('수학 갤러그',W/2,150,'#ffd700',44,'center',true);
+  txt('방향키: 이동  |  SPACE: 발사',W/2,260,'#9b9b9b',16);
+  txt('목표 숫자의 개념에 해당하는 적은 피하고',W/2,290,'#9b9b9b',14);
+  txt('해당하지 않는 적을 모두 격파하세요!',W/2,316,'#00c8fa',14);
+  txt('[ SPACE 또는 Enter ]  시작',W/2,390,'#ffd700',22,'center',true);
+}
+function drawConceptSelect(sel){
+  ctx.fillStyle='#0a0a28'; ctx.fillRect(0,0,W,H);
+  updateStars();
+  txt('개념 선택',W/2,110,'#ffd700',38,'center',true);
+  txt('↑ ↓ 로 이동   SPACE / Enter 로 선택',W/2,165,'#9b9b9b',15);
+  [
+    ['약수','약수 게임','목표 숫자의 약수를 가진 적은 피하고','약수가 아닌 적을 모두 격파!'],
+    ['배수','배수 게임','목표 숫자의 배수를 가진 적은 피하고','배수가 아닌 적을 모두 격파!'],
+  ].forEach(([,name,d1,d2],i)=>{
+    const cy=265+i*135, s=i===sel;
+    ctx.fillStyle=s?'#00c8fa':'#3c3c64'; rrect(W/2-280,cy-52,560,104,12); ctx.fill();
+    ctx.strokeStyle=s?'#ffd700':'#9b9b9b'; ctx.lineWidth=2; rrect(W/2-280,cy-52,560,104,12); ctx.stroke();
+    txt(`${s?'▶  ':'   '}${name}`,W/2,cy-14,s?'#0a0a28':'#fff',24,'center',true);
+    txt(d1,W/2,cy+14,s?'#0a0a28':'#9b9b9b',14);
+    txt(d2,W/2,cy+34,s?'#0a0a28':'#9b9b9b',13);
+  });
+}
+function drawPause(snap){
+  if(snap) ctx.putImageData(snap,0,0);
+  ctx.fillStyle='rgba(0,0,0,.65)'; ctx.fillRect(0,0,W,H);
+  txt('일시정지',W/2,H/2-110,'#ffd700',38,'center',true);
+  txt('ESC: 계속하기',W/2,H/2,'#00c8fa',22);
+  txt('M: 메인 메뉴',W/2,H/2+55,'#fff',22);
+  txt('ESC: 계속하기   ↑↓: 이동   SPACE: 선택',W/2,H/2+195,'#9b9b9b',14);
+}
+function drawResult(result,score){
+  ctx.fillStyle='#0a0a28'; ctx.fillRect(0,0,W,H);
+  updateStars();
+  ctx.fillStyle='rgba(0,0,0,.6)'; ctx.fillRect(0,0,W,H);
+  const[title,col]=result==='clear'?['STAGE CLEAR!','#37d237']:['GAME OVER','#dc3737'];
+  txt(title,W/2,H/2-60,col,44,'center',true);
+  txt(`점수: ${score}`,W/2,H/2,'#fff',28,'center',true);
+  txt(result==='clear'?'SPACE / Enter: 다음 레벨':'SPACE / Enter: 다시 시작',W/2,H/2+60,'#ffd700',20);
+  txt('ESC: 메인 메뉴',W/2,H/2+100,'#9b9b9b',15);
+}
+function drawWin(score){
+  ctx.fillStyle='#0a0a28'; ctx.fillRect(0,0,W,H);
+  updateStars();
+  txt('축하합니다!',W/2,180,'#ffd700',44,'center',true);
+  txt('모든 레벨 클리어!',W/2,260,'#37d237',28,'center',true);
+  txt(`최종 점수: ${score}`,W/2,320,'#00c8fa',26,'center',true);
+  txt('SPACE / Enter: 처음부터  |  ESC: 메인 메뉴',W/2,420,'#9b9b9b',16);
+}
+
+// ── 게임 상태 ────────────────────────────────────────────────
+let state='title', selConcept=0;
+let levels=[], levelIdx=0, player=null;
+let enemies=[], pBullets=[], eBullets=[], particles=[], floats=[];
+let descent=0, descentRate=0, startTime=0, lastEShot=0, eShootCd=2800;
+let bannerEnd=0, pauseSnap=null;
+let resultType='', resultScore=0;
+
+function startGame(concept){
+  levels=buildLevels(concept);
+  player=new Player();
+  levelIdx=0;
+  startLevel();
+}
+function startLevel(){
+  const data=levels[levelIdx];
+  const spdScale=[0.65,0.9,1.2][Math.min(levelIdx,2)];
+  const maxTotal=[10,16,24][Math.min(levelIdx,2)];
+  enemies=buildEnemies(data,maxTotal);
+  for(const e of enemies) e.spd=e.baseSpd*spdScale;
+  pBullets=[]; eBullets=[]; particles=[]; floats=[];
+  descent=0;
+  descentRate=(0.012+0.006*levelIdx)*60; // px/sec
+  startTime=performance.now();
+  lastEShot=performance.now();
+  eShootCd=[2800,2000,1400][Math.min(levelIdx,2)];
+  bannerEnd=performance.now()+2500;
+  state='playing';
+}
+
+// ── 게임 업데이트 ─────────────────────────────────────────────
+function updatePlaying(now,dt){
+  if(jp['Escape']){
+    pauseSnap=ctx.getImageData(0,0,W,H);
+    state='pause'; return;
+  }
+
+  const t=(now-startTime)/1000;
+  descent+=descentRate*dt;
+
+  const alive=enemies.filter(e=>e.alive);
+
+  // 입력
+  if(now>bannerEnd){
+    // 전방 한계: 가장 가까운 적보다 뒤로
+    let fwdLimit=60;
+    if(alive.length){
+      const topY=Math.min(...alive.map(e=>e.y));
+      fwdLimit=Math.max(60,topY+40);
+    }
+    // 임시로 플레이어 이동 (위쪽 제한)
+    const prevY=player.y;
+    player.move();
+    if(player.y<fwdLimit) player.y=fwdLimit;
+
+    if(keys['Space']){
+      const b=player.shoot(now);
+      if(b) pBullets.push(b);
+    }
+  }
+
+  // 적 이동
+  for(const e of enemies) if(e.alive) e.update(t,descent);
+
+  // 적 발사
+  if(now>bannerEnd&&alive.length&&now-lastEShot>eShootCd){
+    const sh=alive[rndInt(0,alive.length-1)];
+    eBullets.push(new EBullet(sh.x,sh.y+20));
+    lastEShot=now;
+  }
+
+  // 총알 업데이트
+  for(const b of pBullets) b.update();
+  pBullets=pBullets.filter(b=>b.alive);
+  for(const b of eBullets) b.update();
+  eBullets=eBullets.filter(b=>b.alive);
+
+  // 충돌: 플레이어 총알 vs 적
+  for(const pb of pBullets){
+    if(!pb.alive) continue;
+    for(const e of enemies){
+      if(!e.alive) continue;
+      if(hits(pb.rect,e.rect)){
+        pb.alive=false; e.alive=false;
+        if(e.isAvoid){
+          player.lives--;
+          floats.push(new FloatText(
+            `${e.num}은(는) ${levels[levelIdx].param}의 ${levels[levelIdx].concept}! -1`,
+            e.x,e.y-20,'#dc3737',110));
+          for(let i=0;i<14;i++) particles.push(new Particle(e.x,e.y,'#dc3737'));
+          if(player.lives<=0){player.lives=0;setResult('gameover');return;}
+        } else {
+          player.score+=10;
+          floats.push(new FloatText('+10',e.x,e.y-20,'#37d237',60));
+          for(let i=0;i<14;i++) particles.push(new Particle(e.x,e.y,'#37d237'));
+        }
+        break;
+      }
+    }
+  }
+
+  // 충돌: 적 총알 vs 플레이어
+  for(const eb of eBullets){
+    if(!eb.alive) continue;
+    if(hits(eb.rect,player.rect)){
+      eb.alive=false;
+      if(player.takeHit(now)){
+        floats.push(new FloatText('목숨 -1!',player.x,player.y-30,'#dc3737',80));
+        for(let i=0;i<10;i++) particles.push(new Particle(player.x,player.y,'#dc3737'));
+        if(player.lives<=0){player.lives=0;setResult('gameover');return;}
+      }
+    }
+  }
+
+  // 적이 하단 침범
+  for(const e of alive) if(e.y>H-90){setResult('gameover');return;}
+
+  // 파티클/텍스트 업데이트
+  for(const p of particles) p.update(); particles=particles.filter(p=>p.life>0);
+  for(const f of floats) f.update(); floats=floats.filter(f=>f.life>0);
+
+  // 스테이지 클리어
+  if(!enemies.some(e=>e.alive&&!e.isAvoid)){setResult('clear');return;}
+
+  // ── 그리기 ──
+  ctx.fillStyle='#0a0a28'; ctx.fillRect(0,0,W,H);
+  updateStars();
+  for(const e of enemies) if(e.alive) e.draw();
+  for(const b of pBullets) b.draw();
+  for(const b of eBullets) b.draw();
+  for(const p of particles) p.draw();
+  for(const f of floats) f.draw();
+  player.draw(now);
+
+  // HUD 상단
+  ctx.fillStyle='#0e0e30'; ctx.fillRect(0,0,W,48);
+  txt(`점수: ${player.score}`,10,24,'#ffd700',18,'left');
+  txt(`목숨: ${'♥ '.repeat(player.lives).trim()}`,190,24,'#dc3737',18,'left');
+  txt(`LEVEL ${levelIdx+1}`,W-10,24,'#c8c8c8',17,'right');
+
+  // HUD 하단 힌트
+  ctx.fillStyle='#0e0e30'; ctx.fillRect(0,H-28,W,28);
+  const{param,concept}=levels[levelIdx];
+  txt(`목표: ${param}의 ${concept}는 피하세요! (빨간색 피하고 파란색 격파)`,8,H-14,'#00c8fa',13,'left');
+
+  // 레벨 시작 배너
+  if(now<=bannerEnd){
+    ctx.fillStyle='rgba(0,0,0,.76)'; ctx.fillRect(0,H/2-65,W,130);
+    txt(`LEVEL ${levelIdx+1}`,W/2,H/2-28,'#ffd700',38,'center',true);
+    txt(`${param}의 ${concept}가 아닌 수를 모두 격파하세요!`,W/2,H/2+22,'#fff',20);
+  }
+}
+
+function setResult(type){
+  resultType=type; resultScore=player.score;
+  state='result';
+}
+
+// ── 메인 루프 ────────────────────────────────────────────────
+let lastT=0;
+function loop(t){
+  const dt=Math.min((t-lastT)/1000,0.05); lastT=t;
+
+  switch(state){
+    case 'title':
+      drawTitle();
+      if(jp['Space']||jp['Enter']) state='conceptSelect';
+      break;
+    case 'conceptSelect':
+      drawConceptSelect(selConcept);
+      if(jp['ArrowUp'])   selConcept=(selConcept-1+2)%2;
+      if(jp['ArrowDown']) selConcept=(selConcept+1)%2;
+      if(jp['Space']||jp['Enter']) startGame(selConcept===0?'약수':'배수');
+      if(jp['Escape']) state='title';
+      break;
+    case 'playing':
+      updatePlaying(t,dt);
+      break;
+    case 'pause':
+      drawPause(pauseSnap);
+      if(jp['Escape']) state='playing';
+      if(jp['KeyM'])   state='title';
+      break;
+    case 'result':
+      drawResult(resultType,resultScore);
+      if(jp['Space']||jp['Enter']){
+        if(resultType==='clear'){
+          player.x=W/2; player.y=H-65; player.invUntil=0;
+          levelIdx++;
+          if(levelIdx>=levels.length){state='win';return;}
+          startLevel();
+        } else {
+          // 게임오버: 다시 시작
+          player=new Player();
+          levelIdx=0; startLevel();
+        }
+      }
+      if(jp['Escape']) state='title';
+      break;
+    case 'win':
+      drawWin(resultScore);
+      if(jp['Space']||jp['Enter']){player=new Player();levelIdx=0;startLevel();}
+      if(jp['Escape']) state='title';
+      break;
+  }
+  clearJP();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

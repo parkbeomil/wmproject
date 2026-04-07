@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>개구리 연못 건너기</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#111; display:flex; justify-content:center; align-items:center; min-height:100vh; }
+canvas { display:block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="800" height="600"></canvas>
+<script>
+// ============================================================
+//  개구리 연못 건너기 – HTML5 Canvas 버전
+// ============================================================
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const W = 800, H = 600;
+
+// ── 유틸 ────────────────────────────────────────────────────
+const rnd    = (a,b) => a + Math.random()*(b-a);
+const rndInt = (a,b) => Math.floor(rnd(a, b+1));
+const clamp  = (v,lo,hi) => Math.max(lo,Math.min(hi,v));
+const shuffle = a => { for (let i=a.length-1;i>0;i--){const j=rndInt(0,i);[a[i],a[j]]=[a[j],a[i]];} return a; };
+
+// ── 색상 ────────────────────────────────────────────────────
+const C = {
+  waterMid:'#1c5f7d', bank:'#46783c',
+  padGreen:'#32a046', padSink:'#236e3c', hudBg:'#0e0e30',
+  white:'#fff', yellow:'#ffd700', cyan:'#00c8fa',
+  red:'#dc3737', dark:'#0a0a28', gray:'#9b9b9b',
+};
+
+// ── 입력 ────────────────────────────────────────────────────
+const keys={}, jp={};
+window.addEventListener('keydown', e=>{
+  if(!keys[e.code]) jp[e.code]=true;
+  keys[e.code]=true;
+  if(['Space','ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.code)) e.preventDefault();
+});
+window.addEventListener('keyup', e=>{ keys[e.code]=false; });
+const clearJP = ()=>{ for(const k in jp) delete jp[k]; };
+
+// ── 개념 로직 ────────────────────────────────────────────────
+const DIVISOR_POOL  = [12,15,16,18,20,21,24,28,30,32,36,40,42,45,48];
+const MULTIPLE_POOL = [2,3,4,5,6,7,8,9];
+
+const isValid     = (n,tgt,c) => c==='약수' ? tgt%n===0 : n%tgt===0;
+const sampleTargets = (c,cnt) => shuffle([...(c==='약수'?DIVISOR_POOL:MULTIPLE_POOL)]).slice(0,cnt);
+
+function pickValid(tgt,lo,hi,c){
+  const v=[]; for(let n=lo;n<=hi;n++) if(isValid(n,tgt,c)) v.push(n);
+  return v.length ? v[rndInt(0,v.length-1)] : tgt;
+}
+function pickInvalid(tgt,lo,hi,c){
+  for(let i=0;i<60;i++){const n=rndInt(lo,hi); if(!isValid(n,tgt,c)) return n;}
+  for(let n=lo;n<=hi;n++) if(!isValid(n,tgt,c)) return n;
+  return lo;
+}
+
+// ── 게임 상수 ────────────────────────────────────────────────
+const BOTTOM_Y=560, TOP_Y=70;
+const TOP_LH=100, BOT_LH=70;
+const PADS_N=5, PAD_W=92, PAD_H=48;
+const MAX_LIVES=3, MOVE_CD=140, SINK_MS=700, RESPAWN_MS=450;
+const TEMPLATES=[
+  {rowN:5,lo:1,hi:30,spd:45},
+  {rowN:7,lo:2,hi:60,spd:65},
+  {rowN:9,lo:3,hi:90,spd:85},
+];
+
+// ── Pad ─────────────────────────────────────────────────────
+class Pad {
+  constructor(x,y,num,good){
+    this.x=x; this.y=y; this.num=num; this.good=good;
+    this.sinking=false; this.sinkUntil=0; this.sinkOff=0; this.alive=true;
+  }
+  update(now){
+    if(!this.sinking) return;
+    this.sinkOff+=1.6;
+    if(now>this.sinkUntil) this.alive=false;
+  }
+  draw(){
+    if(!this.alive) return;
+    const col=this.sinking?C.padSink:C.padGreen;
+    const rx=this.x-PAD_W/2, ry=this.y-PAD_H/2+this.sinkOff;
+    const cx=this.x, cy=ry+PAD_H/2;
+    // 그림자
+    ctx.fillStyle='rgba(10,40,20,.4)';
+    ctx.beginPath(); ctx.ellipse(cx+4,cy+6,PAD_W/2-2,PAD_H/2-3,0,0,Math.PI*2); ctx.fill();
+    // 연잎 몸통
+    ctx.fillStyle=col;
+    ctx.beginPath(); ctx.ellipse(cx,cy,PAD_W/2,PAD_H/2,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#237837'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.ellipse(cx,cy,PAD_W/2-4,PAD_H/2-4,0,0,Math.PI*2); ctx.stroke();
+    // 잎맥
+    ctx.strokeStyle='#288046'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(cx,ry+6); ctx.lineTo(cx,ry+PAD_H-6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(rx+PAD_W-10,cy-7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(rx+10,cy-7); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,cy+2); ctx.lineTo(rx+PAD_W-12,cy+6); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx,cy+2); ctx.lineTo(rx+12,cy+6); ctx.stroke();
+    // 노치
+    ctx.fillStyle='#145023';
+    ctx.beginPath(); ctx.moveTo(cx,ry+2); ctx.lineTo(cx-6,ry+14); ctx.lineTo(cx+6,ry+14); ctx.closePath(); ctx.fill();
+    // 숫자
+    ctx.fillStyle=C.white; ctx.font='bold 17px sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(String(this.num),cx,cy);
+  }
+}
+
+// ── PadRow ──────────────────────────────────────────────────
+class PadRow {
+  constructor(y,spd,dir,tgt,lo,hi,concept){
+    this.y=y; this.spd=spd; this.dir=dir;
+    const spacing=W/(PADS_N+1);
+    const xs=shuffle([...Array(PADS_N)].map((_,i)=>spacing*(i+1)));
+    const goodIdx=rndInt(0,PADS_N-1);
+    this.pads=xs.map((x,i)=>{
+      let n,good;
+      if(i===goodIdx){n=pickValid(tgt,lo,hi,concept);good=true;}
+      else if(Math.random()<0.35){n=pickValid(tgt,lo,hi,concept);good=true;}
+      else{n=pickInvalid(tgt,lo,hi,concept);good=false;}
+      return new Pad(x,y,n,good);
+    });
+    if(!this.pads.some(p=>p.good)){
+      const p=this.pads[rndInt(0,PADS_N-1)];
+      p.num=pickValid(tgt,lo,hi,concept); p.good=true;
+    }
+  }
+  update(dt,now){
+    for(const p of this.pads){
+      p.update(now);
+      p.x+=this.spd*this.dir*dt;
+      if(p.x<-PAD_W/2) p.x+=W+PAD_W;
+      else if(p.x>W+PAD_W/2) p.x-=W+PAD_W;
+    }
+  }
+  sorted(){ return [...this.pads].sort((a,b)=>a.x-b.x); }
+}
+
+// ── Frog ────────────────────────────────────────────────────
+class Frog {
+  constructor(){
+    this.x=W/2; this.y=BOTTOM_Y;
+    this.rowIdx=-1; this.onPad=null; this.lives=MAX_LIVES;
+    this.lastMove=0; this.ckRow=-1; this.ckPad=null;
+    this.respawnUntil=0;
+    this.jumping=false; this.jStart=0; this.jDur=0;
+    this.jFrom=[0,0]; this.jTo=[0,0]; this.jH=0;
+    this.pendPad=null; this.pendRow=-1;
+    this.sinking=false; this.sinkUntil=0; this.jLockUntil=0;
+  }
+  canMove(now){ return now-this.lastMove>MOVE_CD && now>=this.jLockUntil; }
+  setCheckpoint(){ this.ckRow=this.rowIdx; this.ckPad=this.onPad; }
+  startJump(tx,ty,rowIdx,pad,dur=260,h=28,now=0){
+    if(this.jumping) return;
+    this.jumping=true; this.sinking=false;
+    this.jStart=now; this.jDur=dur; this.jLockUntil=now+dur+80;
+    this.jFrom=[this.x,this.y]; this.jTo=[tx,ty]; this.jH=h;
+    this.pendPad=pad; this.pendRow=rowIdx; this.onPad=null;
+  }
+  update(now){
+    if(this.sinking){
+      if(this.onPad){this.x=this.onPad.x; this.y=this.onPad.y-6+this.onPad.sinkOff;}
+      else this.y+=1.6;
+      if(now>=this.sinkUntil){this.sinking=false; return 'sunk';}
+      return null;
+    }
+    if(this.jumping){
+      const t=(now-this.jStart)/Math.max(1,this.jDur);
+      if(t>=1){
+        this.jumping=false; [this.x,this.y]=this.jTo;
+        this.rowIdx=this.pendRow; this.onPad=this.pendPad; return 'landed';
+      }
+      const[x0,y0]=this.jFrom,[x1,y1]=this.jTo;
+      this.x=x0+(x1-x0)*t;
+      this.y=y0+(y1-y0)*t-this.jH*(1-(2*t-1)**2);
+      return null;
+    }
+    if(this.onPad){this.x=this.onPad.x; this.y=this.onPad.y-6;}
+    return null;
+  }
+  draw(){
+    const x=this.x, y=this.y;
+    // 그림자
+    ctx.fillStyle='rgba(10,40,20,.45)';
+    ctx.beginPath(); ctx.ellipse(x+3,y+10,15,13,0,0,Math.PI*2); ctx.fill();
+    // 몸통
+    ctx.fillStyle='#1e9140';
+    ctx.beginPath(); ctx.ellipse(x,y,18,18,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#126a24'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.ellipse(x,y,18,18,0,0,Math.PI*2); ctx.stroke();
+    // 배
+    ctx.fillStyle='#37af55';
+    ctx.beginPath(); ctx.ellipse(x,y+2,12,10,0,0,Math.PI*2); ctx.fill();
+    // 머리
+    ctx.fillStyle='#23a546';
+    ctx.beginPath(); ctx.ellipse(x,y-14,16,11,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#126a24'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.ellipse(x,y-14,16,11,0,0,Math.PI*2); ctx.stroke();
+    // 눈
+    ctx.fillStyle='#f5f5f5';
+    ctx.beginPath(); ctx.arc(x-9,y-22,5,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+9,y-22,5,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#141414';
+    ctx.beginPath(); ctx.arc(x-9,y-22,2,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+9,y-22,2,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.arc(x-11,y-24,1,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+7,y-24,1,0,Math.PI*2); ctx.fill();
+    // 다리
+    ctx.strokeStyle='#197832'; ctx.lineWidth=4;
+    ctx.beginPath(); ctx.moveTo(x-10,y+6); ctx.lineTo(x-28,y+18); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+10,y+6); ctx.lineTo(x+28,y+18); ctx.stroke();
+    ctx.fillStyle='#197832';
+    ctx.beginPath(); ctx.arc(x-28,y+18,3,0,Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+28,y+18,3,0,Math.PI*2); ctx.fill();
+  }
+}
+
+// ── 헬퍼 ────────────────────────────────────────────────────
+function closestPad(row,x){
+  const a=row.pads.filter(p=>p.alive);
+  if(!a.length) return null;
+  return a.reduce((b,p)=>Math.abs(p.x-x)<Math.abs(b.x-x)?p:b);
+}
+function neighborPad(row,x,dir){
+  const s=row.sorted().filter(p=>p.alive);
+  if(!s.length) return null;
+  if(dir<0){const l=s.filter(p=>p.x<x); return l.length?l[l.length-1]:null;}
+  const r=s.filter(p=>p.x>x); return r.length?r[0]:null;
+}
+function rrect(x,y,w,h,r){
+  ctx.beginPath(); ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r); ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h); ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r); ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y); ctx.closePath();
+}
+function txt(t,x,y,col,sz=18,align='center',bold=false){
+  ctx.fillStyle=col; ctx.font=(bold?'bold ':'')+sz+'px sans-serif';
+  ctx.textAlign=align; ctx.textBaseline='middle'; ctx.fillText(t,x,y);
+}
+
+// ── 레벨 빌드 ────────────────────────────────────────────────
+function buildLevel(tmpl,concept,tgt){
+  const{rowN,lo,hi,spd}=tmpl;
+  const t=clamp(tgt,lo,hi);
+  const topBank=70, bottomBank=H-70;
+  const gap=(bottomBank-topBank)/(rowN+1);
+  const rowList=[];
+  for(let i=0;i<rowN;i++){
+    const y=bottomBank-gap*(i+1);
+    rowList.push(new PadRow(y,spd+i*8,i%2===0?1:-1,t,lo,hi,concept));
+  }
+  return{rowList,target:t};
+}
+
+// ── 잔물결 (타이틀) ──────────────────────────────────────────
+const ripples=Array.from({length:16},()=>({
+  x:Math.random()*W,y:Math.random()*H,
+  r:10+Math.random()*30,spd:6+Math.random()*8,alpha:20+Math.random()*35
+}));
+function updateRipples(dt){
+  for(const r of ripples){
+    r.r+=r.spd*dt; r.alpha-=12*dt;
+    if(r.alpha<=0){
+      r.x=Math.random()*W; r.y=Math.random()*H;
+      r.r=10+Math.random()*24; r.spd=6+Math.random()*8; r.alpha=22+Math.random()*33;
+    }
+    if(r.alpha>0){
+      ctx.strokeStyle=`rgba(255,255,255,${Math.min(1,r.alpha/255).toFixed(2)})`;
+      ctx.lineWidth=1.5;
+      ctx.beginPath(); ctx.ellipse(r.x,r.y,r.r,r.r*0.55,0,0,Math.PI*2); ctx.stroke();
+    }
+  }
+}
+
+// ── 목표 개구리 (상단) ────────────────────────────────────────
+function drawGoalFrog(){
+  const x=W/2, y=TOP_Y+5;
+  ctx.fillStyle='rgba(10,40,20,.4)'; ctx.beginPath(); ctx.ellipse(x+3,y+10,15,13,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#1e9140'; ctx.beginPath(); ctx.ellipse(x,y,18,18,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#37af55'; ctx.beginPath(); ctx.ellipse(x,y+2,12,10,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#23a546'; ctx.beginPath(); ctx.ellipse(x,y-14,16,11,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#f5f5f5';
+  ctx.beginPath(); ctx.arc(x-9,y-22,5,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+9,y-22,5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#141414';
+  ctx.beginPath(); ctx.arc(x-9,y-22,2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(x+9,y-22,2,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(240,140,170,.85)';
+  ctx.beginPath(); ctx.ellipse(x-18,y-16,6,3,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse(x+18,y-16,6,3,0,0,Math.PI*2); ctx.fill();
+}
+
+// ── 게임 상태 ────────────────────────────────────────────────
+let state='title', conceptName='약수', selConcept=0;
+let levels=[], levelIdx=0, rows=[], target=0, frog=null, bannerEnd=0;
+let pauseSnap=null;
+
+function startGame(concept){
+  conceptName=concept;
+  const tgts=sampleTargets(concept,TEMPLATES.length);
+  levels=TEMPLATES.map((tmpl,i)=>({tmpl,tgt:tgts[i%tgts.length]}));
+  levelIdx=0; startLevel();
+}
+function startLevel(){
+  const{tmpl,tgt}=levels[levelIdx];
+  const{rowList,target:t}=buildLevel(tmpl,conceptName,tgt);
+  rows=rowList; target=t;
+  frog=new Frog(); frog.setCheckpoint();
+  bannerEnd=performance.now()+2200;
+  state='playing';
+}
+
+// ── 화면 그리기 ───────────────────────────────────────────────
+function drawTitle(dt){
+  ctx.fillStyle=C.dark; ctx.fillRect(0,0,W,H);
+  updateRipples(dt);
+  txt('개구리 연못 건너기',W/2,145,C.yellow,38,'center',true);
+  txt('방향키로 개구리를 이동해 위 땅까지 건너가세요!',W/2,210,C.cyan,15);
+  txt('올바른 수의 연잎만 밟기  |  틀리면 가라앉아요',W/2,240,C.gray,14);
+  txt('↑↓: 연잎 이동  |  ←→: 같은 행 이동 / 바닥 이동',W/2,272,C.gray,14);
+  txt('ESC: 일시정지',W/2,298,C.gray,13);
+  txt('[ SPACE 또는 Enter ]  시작',W/2,370,C.yellow,22,'center',true);
+}
+function drawConceptSelect(){
+  ctx.fillStyle=C.dark; ctx.fillRect(0,0,W,H);
+  txt('개념 선택',W/2,120,C.yellow,38,'center',true);
+  txt('↑ ↓ 로 이동   SPACE / Enter 로 선택',W/2,170,C.gray,15);
+  [['약수','목표 숫자의 약수만 밟기'],['배수','목표 숫자의 배수만 밟기']].forEach(([name,desc],i)=>{
+    const cy=275+i*135, sel=i===selConcept;
+    ctx.fillStyle=sel?C.cyan:'#3c3c64'; rrect(W/2-260,cy-52,520,104,12); ctx.fill();
+    ctx.strokeStyle=sel?C.yellow:C.gray; ctx.lineWidth=2; rrect(W/2-260,cy-52,520,104,12); ctx.stroke();
+    txt(`${sel?'▶  ':'   '}${name} 게임`,W/2,cy-10,sel?C.dark:C.white,24,'center',true);
+    txt(desc,W/2,cy+22,sel?C.dark:C.gray,14);
+  });
+}
+function drawBg(){
+  ctx.fillStyle=C.waterMid; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle=C.bank; ctx.fillRect(0,0,W,TOP_LH); ctx.fillRect(0,H-BOT_LH,W,BOT_LH);
+}
+
+// ── 게임 업데이트 ─────────────────────────────────────────────
+function updatePlaying(now,dt){
+  if(jp['Escape']){
+    pauseSnap=ctx.getImageData(0,0,W,H);
+    state='pause'; return;
+  }
+  if(now>=frog.respawnUntil) frog.respawnUntil=0;
+  const canAct=now>bannerEnd&&!frog.jumping&&!frog.sinking&&!frog.respawnUntil;
+
+  // 점프 입력
+  if(canAct&&frog.canMove(now)){
+    let dir=null;
+    if(jp['ArrowUp']) dir='up';
+    else if(jp['ArrowDown']) dir='down';
+    else if(frog.rowIdx>=0&&jp['ArrowLeft']) dir='left';
+    else if(frog.rowIdx>=0&&jp['ArrowRight']) dir='right';
+    if(dir){ frog.lastMove=now; doJump(dir,now); }
+  }
+  // 바닥 좌우 이동 (연속)
+  if(canAct&&frog.rowIdx===-1){
+    if(keys['ArrowLeft'])  frog.x=clamp(frog.x-4,60,W-60);
+    if(keys['ArrowRight']) frog.x=clamp(frog.x+4,60,W-60);
+  }
+
+  // 업데이트
+  for(const r of rows) r.update(dt,now);
+  const evt=frog.update(now);
+
+  if(evt==='landed'){
+    if(frog.rowIdx===rows.length){state='levelClear';return;}
+    const pad=frog.onPad;
+    if(pad&&!pad.good){
+      pad.sinking=true; pad.sinkUntil=now+SINK_MS;
+      frog.lives--;
+      frog.sinking=true; frog.sinkUntil=now+SINK_MS;
+      frog.respawnUntil=frog.sinkUntil+RESPAWN_MS;
+      frog.onPad=pad;
+      if(frog.lives<=0){state='gameover';return;}
+    } else if(pad) frog.setCheckpoint();
+  } else if(evt==='sunk'){
+    frog.rowIdx=-1; frog.onPad=null;
+    frog.x=W/2; frog.y=BOTTOM_Y; frog.setCheckpoint();
+  }
+
+  // 그리기
+  drawBg();
+  for(const r of rows) for(const p of r.pads) p.draw();
+  drawGoalFrog();
+  frog.draw();
+
+  // HUD
+  ctx.fillStyle=C.hudBg; ctx.fillRect(0,0,W,42);
+  txt(`LEVEL ${levelIdx+1}`,10,21,C.yellow,17,'left');
+  txt(`목표: ${target}`,155,21,C.cyan,17,'left');
+  const hearts='♥ '.repeat(frog.lives).trim();
+  txt(`목숨: ${hearts}`,285,21,C.red,17,'left');
+  txt(`${target}의 ${conceptName}만 밟기`,W-8,21,C.white,13,'right');
+
+  // 레벨 시작 배너
+  if(now<=bannerEnd){
+    ctx.fillStyle='rgba(0,0,0,.73)'; ctx.fillRect(0,H/2-65,W,130);
+    txt(`LEVEL ${levelIdx+1}`,W/2,H/2-32,C.yellow,28,'center',true);
+    txt(`${target}의 ${conceptName}만 밟으세요`,W/2,H/2+10,C.white,20);
+  }
+}
+
+function doJump(dir,now){
+  if(dir==='up'){
+    if(frog.rowIdx===rows.length-1){frog.startJump(frog.x,TOP_Y,rows.length,null,240,30,now);return;}
+    const ni=frog.rowIdx>=0?frog.rowIdx+1:0;
+    const pad=closestPad(rows[ni],frog.x);
+    if(pad) frog.startJump(pad.x,pad.y-6,ni,pad,260,28,now);
+    return;
+  }
+  if(dir==='down'){
+    if(frog.rowIdx<=-1) return;
+    if(frog.rowIdx===0){frog.startJump(frog.x,BOTTOM_Y,-1,null,260,28,now);return;}
+    const pad=closestPad(rows[frog.rowIdx-1],frog.x);
+    if(pad) frog.startJump(pad.x,pad.y-6,frog.rowIdx-1,pad,260,28,now);
+    return;
+  }
+  if(dir==='left'&&frog.onPad){
+    const pad=neighborPad(rows[frog.rowIdx],frog.onPad.x,-1);
+    if(pad) frog.startJump(pad.x,pad.y-6,frog.rowIdx,pad,220,20,now);
+    return;
+  }
+  if(dir==='right'&&frog.onPad){
+    const pad=neighborPad(rows[frog.rowIdx],frog.onPad.x,1);
+    if(pad) frog.startJump(pad.x,pad.y-6,frog.rowIdx,pad,220,20,now);
+    return;
+  }
+}
+
+// ── 메인 루프 ────────────────────────────────────────────────
+let lastT=0;
+function loop(t){
+  const dt=Math.min((t-lastT)/1000,0.05); lastT=t;
+
+  switch(state){
+    case 'title':
+      drawTitle(dt);
+      if(jp['Space']||jp['Enter']) state='conceptSelect';
+      break;
+    case 'conceptSelect':
+      drawConceptSelect();
+      if(jp['ArrowUp'])   selConcept=(selConcept-1+2)%2;
+      if(jp['ArrowDown']) selConcept=(selConcept+1)%2;
+      if(jp['Space']||jp['Enter']) startGame(selConcept===0?'약수':'배수');
+      if(jp['Escape']) state='title';
+      break;
+    case 'playing':
+      updatePlaying(t,dt);
+      break;
+    case 'pause':
+      if(pauseSnap) ctx.putImageData(pauseSnap,0,0);
+      ctx.fillStyle='rgba(0,0,0,.65)'; ctx.fillRect(0,0,W,H);
+      txt('일시정지',W/2,H/2-110,C.yellow,38,'center',true);
+      txt('ESC: 계속하기',W/2,H/2,C.cyan,22);
+      txt('M: 메인 메뉴',W/2,H/2+55,C.white,22);
+      txt('↑↓ 방향키, SPACE/Enter: 선택',W/2,H/2+195,C.gray,14);
+      if(jp['Escape']) state='playing';
+      if(jp['KeyM'])   state='title';
+      break;
+    case 'levelClear':
+      ctx.fillStyle=C.dark; ctx.fillRect(0,0,W,H);
+      ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(0,0,W,H);
+      txt('LEVEL CLEAR!',W/2,H/2-40,C.yellow,44,'center',true);
+      txt('SPACE / Enter: 다음 레벨',W/2,H/2+25,C.white,22);
+      txt('ESC: 메인 메뉴',W/2,H/2+65,C.gray,15);
+      if(jp['Space']||jp['Enter']){
+        levelIdx++;
+        if(levelIdx>=levels.length) state='allClear';
+        else startLevel();
+      }
+      if(jp['Escape']) state='title';
+      break;
+    case 'gameover':
+      ctx.fillStyle=C.dark; ctx.fillRect(0,0,W,H);
+      ctx.fillStyle='rgba(0,0,0,.5)'; ctx.fillRect(0,0,W,H);
+      txt('GAME OVER',W/2,H/2-20,C.red,46,'center',true);
+      txt('SPACE / Enter: 다시 시작  |  ESC: 메인 메뉴',W/2,H/2+45,C.gray,16);
+      if(jp['Space']||jp['Enter']){levelIdx=0;startLevel();}
+      if(jp['Escape']) state='title';
+      break;
+    case 'allClear':
+      ctx.fillStyle=C.dark; ctx.fillRect(0,0,W,H);
+      txt('ALL CLEAR!',W/2,H/2-50,C.yellow,48,'center',true);
+      txt('모든 레벨 완료!',W/2,H/2+15,C.cyan,26);
+      txt('SPACE / Enter 또는 ESC: 처음으로',W/2,H/2+75,C.gray,16);
+      if(jp['Space']||jp['Enter']||jp['Escape']) state='title';
+      break;
+  }
+  clearJP();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
