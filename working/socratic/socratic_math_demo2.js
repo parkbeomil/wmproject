@@ -1,102 +1,3 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>소크라테스 수학 선생님 — 배수와 약수</title>
-<style>
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { height: 100%; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f9f9f7; display: flex; justify-content: center; padding: 1rem; box-sizing: border-box; }
-#wrapper { width: 100%; max-width: 600px; display: flex; flex-direction: column; }
- 
-#key-screen { background: #fff; border-radius: 16px; border: 1px solid #e5e5e0; padding: 2rem; }
-#key-screen h2 { font-size: 16px; font-weight: 500; color: #1a1a18; margin-bottom: 6px; }
-#key-screen p { font-size: 13px; color: #5f5e5a; margin-bottom: 16px; line-height: 1.6; }
-#key-input { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #d3d1c7; font-size: 14px; font-family: inherit; color: #1a1a18; background: #fff; margin-bottom: 10px; }
-#key-input:focus { outline: none; border-color: #AFA9EC; }
-#key-submit { width: 100%; padding: 10px; border-radius: 10px; border: none; background: #534AB7; color: #fff; font-size: 14px; font-weight: 500; cursor: pointer; }
-#key-submit:hover:not(:disabled) { background: #3C3489; }
-#key-submit:disabled { background: #AFA9EC; cursor: not-allowed; }
-.key-error { font-size: 13px; color: #A32D2D; background: #FCEBEB; border-radius: 8px; padding: 8px 12px; margin-top: 10px; display: none; }
-.key-warning { font-size: 12px; color: #BA7517; background: #FAEEDA; border-radius: 8px; padding: 8px 12px; margin-top: 10px; line-height: 1.5; }
- 
-#app { display: none; flex-direction: column; flex: 1; background: #fff; border-radius: 16px; border: 1px solid #e5e5e0; padding: 1.25rem; overflow: hidden; }
-#chat-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid #e5e5e0; }
-.avatar { width: 36px; height: 36px; border-radius: 50%; background: #EEEDFE; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
-.header-title { font-size: 14px; font-weight: 500; color: #1a1a18; }
-.header-sub { font-size: 12px; color: #888780; margin-top: 1px; }
-#reset-key { font-size: 11px; padding: 3px 10px; border-radius: 10px; border: 1px solid #d3d1c7; background: #fff; color: #5f5e5a; cursor: pointer; margin-left: auto; }
-#reset-key:hover { background: #f1efe8; }
- 
-#chat-area { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; padding: 2px 0; margin-bottom: 12px; }
-.msg-row { display: flex; gap: 8px; }
-.msg-row.user { flex-direction: row-reverse; }
-.msg-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; margin-top: 2px; }
-.ai-av { background: #EEEDFE; }
-.user-av { background: #f1efe8; }
-.bubble { max-width: 75%; padding: 9px 13px; font-size: 14px; line-height: 1.65; border: 1px solid #e5e5e0; }
-.msg-row.ai .bubble { background: #fff; color: #1a1a18; border-radius: 4px 14px 14px 14px; }
-.msg-row.user .bubble { background: #f1efe8; color: #1a1a18; border-radius: 14px 4px 14px 14px; }
-.bubble.loading { color: #888780; font-style: italic; }
-.bubble.error { color: #A32D2D; background: #FCEBEB; border-color: #F7C1C1; }
- 
-.example-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
-.chip { font-size: 12px; padding: 4px 10px; border-radius: 12px; border: 1px solid #d3d1c7; background: #fff; color: #5f5e5a; cursor: pointer; }
-.chip:hover { background: #f1efe8; color: #1a1a18; }
- 
-#input-row { display: flex; gap: 8px; align-items: flex-end; }
-#user-input { flex: 1; padding: 10px 14px; border-radius: 20px; border: 1px solid #d3d1c7; background: #fff; color: #1a1a18; font-size: 14px; font-family: inherit; resize: none; line-height: 1.5; max-height: 100px; overflow-y: auto; }
-#user-input:focus { outline: none; border-color: #AFA9EC; }
-#send-btn { width: 40px; height: 40px; border-radius: 50%; border: 1px solid #d3d1c7; background: #fff; color: #1a1a18; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
-#send-btn:hover { background: #f1efe8; }
-#send-btn:disabled { color: #b4b2a9; cursor: not-allowed; }
-</style>
-</head>
-<body>
-<div id="wrapper">
-
-  <div id="key-screen">
-    <h2>🦉 소크라테스 수학 선생님</h2>
-    <p>시작하려면 Anthropic API 키를 입력하고 확인을 눌러주세요.<br>키는 이 브라우저 탭에서만 사용되며 어디에도 저장되지 않습니다.</p>
-    <input type="password" id="key-input" placeholder="API 키를 입력하세요..." autocomplete="off" />
-    <button id="key-submit">키 확인 후 시작</button>
-    <div class="key-error" id="key-error"></div>
-    <!-- <div class="key-warning">⚠️ 시연/테스트 전용입니다. API 키가 포함된 파일을 공개 서버에 올리거나 타인에게 공유하지 마세요.</div> -->
-  </div>
-
-  <div id="app">
-    <div id="chat-header">
-      <div class="avatar">🦉</div>
-      <div>
-        <div class="header-title">소크라테스 수학 선생님</div>
-        <div class="header-sub">초등 5학년 · 배수와 약수</div>
-      </div>
-      <button id="reset-key">키 변경</button>
-    </div>
-
-    <div class="example-chips" id="chips">
-      <span class="chip" onclick="setInput('배수가 뭐예요?')">배수가 뭐예요?</span>
-      <span class="chip" onclick="setInput('약수가 뭐예요?')">약수가 뭐예요?</span>
-      <span class="chip" onclick="setInput('최대공약수를 어떻게 구해요?')">최대공약수 구하는 법</span>
-      <span class="chip" onclick="setInput('최소공배수가 왜 필요해요?')">최소공배수가 왜 필요해요?</span>
-    </div>
-
-    <div id="chat-area">
-      <div class="msg-row ai">
-        <div class="msg-avatar ai-av">🦉</div>
-        <div class="bubble">안녕! 나는 미래엔 소크라테스 선생님이야 😊<br>우리 친구 이름은 뭐야?</div>
-      </div>
-    </div>
-
-    <div id="input-row">
-      <textarea id="user-input" placeholder="궁금한 것을 입력해봐..." rows="1"></textarea>
-      <button id="send-btn">↑</button>
-    </div>
-  </div>
-
-</div>
-<script>
 const SYSTEM = `당신은 초등학교 5학년 수학 중 "배수와 약수" 단원을 가르치는 소크라테스식 선생님입니다.
 대화 상대는 초등학교 5학년 학생입니다.
 선생님 이름은 "미래엔 소크라테스 선생님"입니다.
@@ -159,20 +60,17 @@ const SYSTEM = `당신은 초등학교 5학년 수학 중 "배수와 약수" 단
 - 소수와의 관계
 - 실생활 응용 문제`;
 
-
-
-
 let apiKey = '';
 let history = [];
 
 const keyScreen = document.getElementById('key-screen');
 const appScreen = document.getElementById('app');
-const keyInput  = document.getElementById('key-input');
+const keyInput = document.getElementById('key-input');
 const keySubmit = document.getElementById('key-submit');
-const keyError  = document.getElementById('key-error');
-const chatArea  = document.getElementById('chat-area');
+const keyError = document.getElementById('key-error');
+const chatArea = document.getElementById('chat-area');
 const userInput = document.getElementById('user-input');
-const sendBtn   = document.getElementById('send-btn');
+const sendBtn = document.getElementById('send-btn');
 
 function showKeyError(msg) {
   keyError.textContent = msg;
@@ -202,7 +100,7 @@ async function verifyAndStart() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: 'claude-3-5-sonnet-20240620',
         max_tokens: 10,
         messages: [{ role: 'user', content: 'hi' }]
       })
@@ -223,7 +121,7 @@ async function verifyAndStart() {
       keyScreen.style.display = 'none';
       appScreen.style.display = 'flex';
     }
-  } catch(e) {
+  } catch (e) {
     showKeyError('❌ 네트워크 오류. 인터넷 연결을 확인해주세요.');
   }
 
@@ -293,7 +191,7 @@ async function send() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001', //'claude-sonnet-4-6',
+        model: 'claude-3-5-sonnet-20240620',
         max_tokens: 1000,
         system: SYSTEM,
         messages: history
@@ -304,21 +202,21 @@ async function send() {
     if (!res.ok) {
       loadingBubble.classList.remove('loading');
       loadingBubble.classList.add('error');
-      loadingBubble.textContent = '오류: ' + (data?.error?.message || res.status);
+      loadingBubble.textContent = '앗! 문제가 생겼어요: ' + (data?.error?.message || res.status);
     } else {
-      const reply = data.content?.[0]?.text || '앗, 응답이 없어요.';
+      const reply = data.content?.[0]?.text || '음... 대답을 못 찾겠어. 다시 한 번 말해줄래?';
       loadingBubble.classList.remove('loading');
       loadingBubble.innerHTML = reply.replace(/\n/g, '<br>');
       history.push({ role: 'assistant', content: reply });
     }
-  } catch(e) {
+  } catch (e) {
     loadingBubble.classList.remove('loading');
     loadingBubble.classList.add('error');
-    loadingBubble.textContent = '네트워크 오류. 인터넷 연결을 확인해봐!';
+    loadingBubble.textContent = '네트워크가 불안정한 것 같아. 연결을 확인해볼래?';
   }
 
   sendBtn.disabled = false;
-  chatArea.scrollTop = chatArea.scrollHeight;
+  chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: 'smooth' });
 }
 
 sendBtn.addEventListener('click', send);
@@ -326,10 +224,7 @@ userInput.addEventListener('keydown', e => {
   // if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
   if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); }
 });
-userInput.addEventListener('input', function() {
+userInput.addEventListener('input', function () {
   this.style.height = 'auto';
   this.style.height = Math.min(this.scrollHeight, 100) + 'px';
 });
-</script>
-</body>
-</html>

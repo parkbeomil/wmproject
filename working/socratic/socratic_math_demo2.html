@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="초등학교 5학년 수학 '배수와 약수' 단원을 친절하게 가르쳐주는 AI 소크라테스 선생님입니다.">
+  <title>소크라테스 수학 선생님 — 초등 5학년 배수와 약수</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="socratic_math_demo2.css">
+</head>
+
+<body>
+  <div id="wrapper">
+
+    <div id="key-screen">
+      <h2>🦉 소크라테스 수학 선생님</h2>
+      <p>시작하려면 Anthropic API 키를 입력하고 확인을 눌러주세요.<br>키는 이 브라우저 탭에서만 사용되며 어디에도 저장되지 않습니다.</p>
+      <input type="password" id="key-input" placeholder="API 키를 입력하세요..." autocomplete="off" />
+      <button id="key-submit">키 확인 후 시작</button>
+      <div class="key-error" id="key-error"></div>
+      <!-- <div class="key-warning">⚠️ 시연/테스트 전용입니다. API 키가 포함된 파일을 공개 서버에 올리거나 타인에게 공유하지 마세요.</div> -->
+    </div>
+
+    <div id="app">
+      <div id="chat-header">
+        <div class="avatar">🦉</div>
+        <div>
+          <div class="header-title">소크라테스 수학 선생님</div>
+          <div class="header-sub">초등 5학년 · 배수와 약수</div>
+        </div>
+        <button id="reset-key">키 변경</button>
+      </div>
+
+      <div class="example-chips" id="chips">
+        <span class="chip" onclick="setInput('배수가 뭐예요?')">배수가 뭐예요?</span>
+        <span class="chip" onclick="setInput('약수가 뭐예요?')">약수가 뭐예요?</span>
+        <span class="chip" onclick="setInput('최대공약수를 어떻게 구해요?')">최대공약수 구하는 법</span>
+        <span class="chip" onclick="setInput('최소공배수가 왜 필요해요?')">최소공배수가 왜 필요해요?</span>
+      </div>
+
+      <div id="chat-area">
+        <div class="msg-row ai">
+          <div class="msg-avatar ai-av">🦉</div>
+          <div class="bubble">안녕! 나는 미래엔 소크라테스 선생님이야 😊<br>우리 친구 이름은 뭐야?</div>
+        </div>
+      </div>
+
+      <div id="input-row">
+        <textarea id="user-input" placeholder="궁금한 것을 입력해봐..." rows="1"></textarea>
+        <button id="send-btn">↑</button>
+      </div>
+    </div>
+
+  </div>
+  <script src="socratic_math_demo2.js"></script>
+</body>
+
+</html>
