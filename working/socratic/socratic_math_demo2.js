@@ -191,7 +191,7 @@ async function send() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20240620',
+        model: 'claude-3-5-haiku',
         max_tokens: 1000,
         system: SYSTEM,
         messages: history
