@@ -60,92 +60,22 @@ const SYSTEM = `당신은 초등학교 5학년 수학 중 "배수와 약수" 단
 - 소수와의 관계
 - 실생활 응용 문제`;
 
-let apiKey = '';
+// 인증 확인: 세션 스토리지에 키가 없으면 인증 페이지로 이동
+let apiKey = sessionStorage.getItem('anthropic_api_key');
 let history = [];
 
-const keyScreen = document.getElementById('key-screen');
+if (!apiKey) {
+  window.location.href = 'auth.html';
+}
+
 const appScreen = document.getElementById('app');
-const keyInput = document.getElementById('key-input');
-const keySubmit = document.getElementById('key-submit');
-const keyError = document.getElementById('key-error');
 const chatArea = document.getElementById('chat-area');
 const userInput = document.getElementById('user-input');
 const sendBtn = document.getElementById('send-btn');
 
-function showKeyError(msg) {
-  keyError.textContent = msg;
-  keyError.style.display = 'block';
-  keyInput.style.borderColor = '#E24B4A';
-}
-function clearKeyError() {
-  keyError.style.display = 'none';
-  keyInput.style.borderColor = '';
-}
-
-async function verifyAndStart() {
-  const val = keyInput.value.trim();
-  if (!val) { showKeyError('API 키를 입력해주세요.'); return; }
-
-  clearKeyError();
-  keySubmit.disabled = true;
-  keySubmit.textContent = '확인 중...';
-
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': val,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
-        max_tokens: 10,
-        messages: [{ role: 'user', content: 'hi' }]
-      })
-    });
-
-    const data = await res.json();
-
-    if (res.status === 401) {
-      showKeyError('❌ 유효하지 않은 API 키입니다. 콘솔에서 키를 다시 확인해주세요.');
-    } else if (res.status === 403) {
-      showKeyError('❌ 접근 권한이 없는 키입니다.');
-    } else if (res.status === 429) {
-      showKeyError('❌ 요청 한도 초과입니다. 잠시 후 다시 시도해주세요.');
-    } else if (!res.ok) {
-      showKeyError('❌ 오류 ' + res.status + ': ' + (data?.error?.message || '알 수 없는 오류'));
-    } else {
-      apiKey = val;
-      keyScreen.style.display = 'none';
-      appScreen.style.display = 'flex';
-    }
-  } catch (e) {
-    showKeyError('❌ 네트워크 오류. 인터넷 연결을 확인해주세요.');
-  }
-
-  keySubmit.disabled = false;
-  keySubmit.textContent = '키 확인 후 시작';
-}
-
-keySubmit.addEventListener('click', verifyAndStart);
-keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') verifyAndStart(); });
-keyInput.addEventListener('input', clearKeyError);
-
 document.getElementById('reset-key').addEventListener('click', () => {
-  apiKey = '';
-  history = [];
-  keyInput.value = '';
-  clearKeyError();
-  appScreen.style.display = 'none';
-  keyScreen.style.display = 'block';
-  chatArea.innerHTML = `
-    <div class="msg-row ai">
-      <div class="msg-avatar ai-av">🦉</div>
-      <div class="bubble">안녕! 나는 미래엔 소크라테스 선생님이야 😊<br>우리 친구 이름은 뭐야?</div>
-    </div>`;
-  document.getElementById('chips').style.display = 'flex';
+  sessionStorage.removeItem('anthropic_api_key');
+  window.location.href = 'auth.html';
 });
 
 function setInput(text) {

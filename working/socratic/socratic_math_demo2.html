@@ -15,16 +15,7 @@
 <body>
   <div id="wrapper">
 
-    <div id="key-screen">
-      <h2>🦉 소크라테스 수학 선생님</h2>
-      <p>시작하려면 Anthropic API 키를 입력하고 확인을 눌러주세요.<br>키는 이 브라우저 탭에서만 사용되며 어디에도 저장되지 않습니다.</p>
-      <input type="password" id="key-input" placeholder="API 키를 입력하세요..." autocomplete="off" />
-      <button id="key-submit">키 확인 후 시작</button>
-      <div class="key-error" id="key-error"></div>
-      <!-- <div class="key-warning">⚠️ 시연/테스트 전용입니다. API 키가 포함된 파일을 공개 서버에 올리거나 타인에게 공유하지 마세요.</div> -->
-    </div>
-
-    <div id="app">
+    <div id="app" style="display: flex;">
       <div id="chat-header">
         <div class="avatar">🦉</div>
         <div>
