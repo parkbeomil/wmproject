@@ -100,7 +100,7 @@ async function verifyAndStart() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20240620',
+        model: 'claude-3-5-haiku',
         max_tokens: 10,
         messages: [{ role: 'user', content: 'hi' }]
       })
