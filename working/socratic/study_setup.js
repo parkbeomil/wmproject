@@ -11,6 +11,8 @@ const previewWrap = document.getElementById('image-preview-wrap');
 const previewImg = document.getElementById('image-preview');
 const removeImageBtn = document.getElementById('remove-image');
 const unitInput = document.getElementById('unit-input');
+const gradeSelect = document.getElementById('grade-select');
+const semesterSelect = document.getElementById('semester-select');
 const startBtn = document.getElementById('start-study');
 const loadingOverlay = document.getElementById('loading-overlay');
 const errorMsg = document.getElementById('error-msg');
@@ -19,11 +21,16 @@ let selectedFile = null; // 현재 선택된 이미지 파일
 
 // ── 시작 버튼 활성화 조건 ───────────────────────────────
 function updateStartBtn() {
-  // 이미지가 있거나 텍스트 단원이 입력된 경우 활성화
-  startBtn.disabled = !selectedFile && !unitInput.value.trim();
+  const hasImage = !!selectedFile;
+  const hasUnit = !!unitInput.value.trim();
+  const hasGrade = !!gradeSelect.value;
+  // 이미지 모드: 이미지만 있으면 됨 (Vision이 학년/학기 자동 분석)
+  // 텍스트 모드: 단원 + 학년 모두 필요
+  startBtn.disabled = !(hasImage || (hasUnit && hasGrade));
 }
 
 unitInput.addEventListener('input', updateStartBtn);
+gradeSelect.addEventListener('change', updateStartBtn);
 
 // ── 업로드 존 클릭 → 파일 선택 ─────────────────────────
 uploadZone.addEventListener('click', () => cameraInput.click());
@@ -103,8 +110,8 @@ startBtn.addEventListener('click', async () => {
     }
     sessionStorage.removeItem('extracted_problem');
     sessionStorage.removeItem('problem_image');
-    sessionStorage.setItem('study_grade', '5');
-    sessionStorage.setItem('study_semester', '1');
+    sessionStorage.setItem('study_grade', gradeSelect.value || '5');
+    sessionStorage.setItem('study_semester', semesterSelect.value || '1');
     sessionStorage.setItem('study_unit', unit);
     window.location.href = 'socratic_math_demo2.html';
   }
