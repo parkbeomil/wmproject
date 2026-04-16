@@ -1,7 +1,9 @@
+import { searchKornorm, searchKterm, searchStdict } from "@/lib/externalApis";
 import { createId } from "@/lib/id";
 import type {
   DocumentLocation,
   DocumentRecord,
+  ExternalEvidence,
   GlossaryTerm,
   Issue,
   IssueCategory,
@@ -47,6 +49,7 @@ function buildIssue(params: {
   groupKey: string;
   location: DocumentLocation;
   suggestions: Suggestion[];
+  evidences?: ExternalEvidence[];
 }): Issue {
   return {
     id: createId("issue"),
@@ -58,6 +61,7 @@ function buildIssue(params: {
     groupKey: params.groupKey,
     location: params.location,
     suggestions: params.suggestions,
+    evidences: params.evidences ?? [],
     reviewStatus: "pending"
   };
 }
@@ -67,8 +71,26 @@ function findIndex(haystack: string, needle: string) {
   return index >= 0 ? index : 0;
 }
 
-export function analyzeDocument(document: DocumentRecord, glossaryTerms: GlossaryTerm[]) {
+function createIssueKey(issue: Issue) {
+  return `${issue.groupKey}:${issue.location.sectionId}:${issue.location.paragraphIndex}:${issue.excerpt}`;
+}
+
+function collectLatinTokens(document: DocumentRecord) {
+  const tokens = new Set<string>();
+
+  document.sections.forEach((section) => {
+    section.paragraphs.forEach((paragraph) => {
+      const matches = paragraph.match(/\b[A-Za-z][A-Za-z-]{2,}\b/g) ?? [];
+      matches.forEach((token) => tokens.add(token));
+    });
+  });
+
+  return [...tokens].slice(0, 5);
+}
+
+export async function analyzeDocument(document: DocumentRecord, glossaryTerms: GlossaryTerm[]) {
   const issues: Issue[] = [];
+  const analysisNotes: string[] = [];
 
   document.sections.forEach((section, sectionIndex) => {
     section.paragraphs.forEach((paragraph, paragraphIndex) => {
@@ -169,7 +191,7 @@ export function analyzeDocument(document: DocumentRecord, glossaryTerms: Glossar
     }
   });
 
-  glossaryTerms.forEach((term) => {
+  for (const term of glossaryTerms) {
     const variants = [term.standard, ...term.allowedVariants, ...term.bannedVariants];
     const hits = new Set<string>();
 
@@ -183,40 +205,104 @@ export function analyzeDocument(document: DocumentRecord, glossaryTerms: Glossar
       });
     });
 
-    if (hits.size > 1) {
-      const hitList = [...hits].join(", ");
-      const paragraph = document.sections.flatMap((section) => section.paragraphs).find((line) => variants.some((variant) => line.includes(variant)));
+    const paragraph = document.sections
+      .flatMap((section) => section.paragraphs)
+      .find((line) => variants.some((variant) => line.includes(variant)));
 
-      if (paragraph) {
-        const tokenStart = variants.map((variant) => paragraph.indexOf(variant)).find((index) => index >= 0) ?? 0;
-        issues.push(
-          buildIssue({
-            category: "glossary",
-            severity: "high",
-            title: "용어 표기 일관성 불일치",
-            excerpt: paragraph,
-            rationale: `같은 개념이 ${hitList} 형태로 혼용되고 있습니다.`,
-            groupKey: `glossary-${term.id}`,
-            location: createLocation(document, 0, 0, tokenStart, tokenStart + term.standard.length),
-            suggestions: [
-              buildSuggestion(
-                term.standard,
-                `도서 기준 표준 용어는 \`${term.standard}\`입니다.`,
-                "용어집",
-                0.98
-              )
-            ]
-          })
-        );
-      }
+    const bannedHit = term.bannedVariants.find((variant) =>
+      document.sections.some((section) => section.paragraphs.some((paragraphLine) => paragraphLine.includes(variant)))
+    );
+
+    if ((!paragraph || hits.size <= 1) && !bannedHit) {
+      continue;
     }
+
+    const tokenStart = variants.map((variant) => paragraph?.indexOf(variant) ?? -1).find((index) => index >= 0) ?? 0;
+    const ktermResult = await searchKterm(term.standard);
+    const stdictResult = await searchStdict(term.standard);
+    analysisNotes.push(...ktermResult.notes, ...stdictResult.notes);
+
+    issues.push(
+      buildIssue({
+        category: "glossary",
+        severity: "high",
+        title: bannedHit ? "금지 용어 표기 사용" : "용어 표기 일관성 불일치",
+        excerpt: paragraph ?? term.standard,
+        rationale: bannedHit
+          ? `금지 표기 \`${bannedHit}\`가 사용되었습니다. 표준 용어 \`${term.standard}\`로 통일해야 합니다.`
+          : `같은 개념이 ${[...hits].join(", ")} 형태로 혼용되고 있습니다.`,
+        groupKey: `glossary-${term.id}`,
+        location: createLocation(document, 0, 0, tokenStart, tokenStart + term.standard.length),
+        suggestions: [
+          buildSuggestion(term.standard, `도서 기준 표준 용어는 \`${term.standard}\`입니다.`, "용어집", 0.98)
+        ],
+        evidences: ktermResult.evidences
+      })
+    );
+  }
+
+  for (const token of collectLatinTokens(document)) {
+    const kornormResult = await searchKornorm(token);
+    analysisNotes.push(...kornormResult.notes);
+
+    if (kornormResult.evidences.length === 0) {
+      continue;
+    }
+
+    const paragraph = document.sections
+      .flatMap((section) => section.paragraphs)
+      .find((line) => line.includes(token));
+
+    if (!paragraph) {
+      continue;
+    }
+
+    const tokenStart = paragraph.indexOf(token);
+    issues.push(
+      buildIssue({
+        category: "romanization",
+        severity: "medium",
+        title: "로마자 표기 기준 점검",
+        excerpt: paragraph,
+        rationale: `어문 규범 용례에서 \`${token}\`은(는) 오표기로 확인되었습니다.`,
+        groupKey: `romanization-${token}`,
+        location: createLocation(document, 0, 0, tokenStart, tokenStart + token.length),
+        suggestions: kornormResult.evidences.map((evidence) =>
+          buildSuggestion(
+            evidence.title.split(" -> ")[1] ?? token,
+            "한국어 어문 규범의 로마자 용례를 기준으로 수정합니다.",
+            "한국어 어문 규범 Open API",
+            0.94
+          )
+        ),
+        evidences: kornormResult.evidences
+      })
+    );
+  }
+
+  const previousDecisions = new Map(
+    document.issues
+      .filter((issue) => issue.reviewStatus !== "pending")
+      .map((issue) => [createIssueKey(issue), issue] as const)
+  );
+
+  const mergedIssues = issues.map((issue) => {
+    const previous = previousDecisions.get(createIssueKey(issue));
+    if (!previous) {
+      return issue;
+    }
+
+    return {
+      ...issue,
+      reviewStatus: previous.reviewStatus,
+      reviewedAt: previous.reviewedAt,
+      reviewedBy: previous.reviewedBy,
+      reviewMemo: previous.reviewMemo
+    };
   });
 
-  const reviewed = document.issues.filter((issue) => issue.reviewStatus !== "pending");
-  const carryOver = reviewed.map((issue) => ({
-    ...issue,
-    suggestions: issue.suggestions
-  }));
-
-  return [...carryOver, ...issues];
+  return {
+    issues: mergedIssues,
+    analysisNotes: [...new Set(analysisNotes)]
+  };
 }

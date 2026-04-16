@@ -47,7 +47,13 @@ export function useCreateDocument() {
           documents,
           metrics: {
             ...current.metrics,
-            totalDocuments: documents.length
+            totalDocuments: documents.length,
+            totalIssues: documents.reduce((acc, item) => acc + item.issues.length, 0),
+            pendingIssues: documents.reduce(
+              (acc, item) => acc + item.issues.filter((issue) => issue.reviewStatus === "pending").length,
+              0
+            ),
+            reviewedRate: 0
           }
         };
       });
@@ -65,7 +71,31 @@ export function useRunAnalysis() {
         method: "POST",
         body: JSON.stringify({})
       }),
-    onSuccess: () => {
+    onSuccess: (document) => {
+      queryClient.setQueryData<DashboardData | undefined>(DASHBOARD_QUERY_KEY, (current) => {
+        if (!current) {
+          return current;
+        }
+
+        const documents = current.documents.map((item) => (item.id === document.id ? document : item));
+        const totalIssues = documents.reduce((acc, item) => acc + item.issues.length, 0);
+        const pendingIssues = documents.reduce(
+          (acc, item) => acc + item.issues.filter((issue) => issue.reviewStatus === "pending").length,
+          0
+        );
+        const reviewedIssues = totalIssues - pendingIssues;
+
+        return {
+          ...current,
+          documents,
+          metrics: {
+            totalDocuments: documents.length,
+            totalIssues,
+            pendingIssues,
+            reviewedRate: totalIssues === 0 ? 0 : Math.round((reviewedIssues / totalIssues) * 100)
+          }
+        };
+      });
       queryClient.invalidateQueries({ queryKey: DASHBOARD_QUERY_KEY });
     }
   });

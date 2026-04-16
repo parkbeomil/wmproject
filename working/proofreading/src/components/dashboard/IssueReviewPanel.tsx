@@ -86,6 +86,35 @@ function ReviewItem({
           </div>
         </div>
       </div>
+
+      {issue.evidences.length > 0 ? (
+        <div className="mt-4 rounded-lg border border-sky-200 bg-sky-50 p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-sky-700">외부 근거</p>
+          <div className="mt-3 space-y-3">
+            {issue.evidences.map((evidence) => (
+              <div key={evidence.id} className="rounded-lg bg-white px-4 py-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm font-semibold text-sky-900">{evidence.title}</span>
+                  <span className="rounded-full bg-sky-100 px-2 py-1 text-[11px] font-semibold text-sky-700">
+                    {evidence.source}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm leading-6 text-slate-700">{evidence.description}</p>
+                {evidence.link ? (
+                  <a
+                    className="mt-2 inline-block text-xs font-semibold text-sky-700 underline"
+                    href={evidence.link}
+                    rel="noreferrer"
+                    target="_blank"
+                  >
+                    공식 근거 열기
+                  </a>
+                ) : null}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -118,6 +147,11 @@ export function IssueReviewPanel({ document }: IssueReviewPanelProps) {
       </div>
 
       <div className="mt-6 space-y-4">
+        {deferredDocument.analysisNotes.length > 0 ? (
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            {deferredDocument.analysisNotes.join(" / ")}
+          </div>
+        ) : null}
         {deferredDocument.issues.length > 0 ? (
           deferredDocument.issues.map((issue) => (
             <ReviewItem

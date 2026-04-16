@@ -11,8 +11,23 @@ import type {
 } from "@/types/document";
 import { splitIntoSections } from "@/utils/document";
 
-const documents: DocumentRecord[] = structuredClone(seedDocuments);
-const glossaryTerms: GlossaryTerm[] = structuredClone(seedGlossaryTerms);
+declare global {
+  var __proofreadingStore:
+    | {
+        documents: DocumentRecord[];
+        glossaryTerms: GlossaryTerm[];
+      }
+    | undefined;
+}
+
+const store =
+  globalThis.__proofreadingStore ??
+  (globalThis.__proofreadingStore = {
+    documents: structuredClone(seedDocuments),
+    glossaryTerms: structuredClone(seedGlossaryTerms)
+  });
+
+const { documents, glossaryTerms } = store;
 
 function calculateMetrics(docList: DocumentRecord[]) {
   const totalIssues = docList.reduce((acc, item) => acc + item.issues.length, 0);
@@ -56,7 +71,8 @@ export async function createDocument(payload: CreateDocumentPayload) {
     extractionNote: extracted.extractionNote,
     text,
     sections,
-    issues: []
+    issues: [],
+    analysisNotes: []
   };
 
   documents.unshift(document);
@@ -71,7 +87,9 @@ export async function runAnalysis(documentId: string) {
   }
 
   document.status = "analyzing";
-  document.issues = analyzeDocument(document, glossaryTerms);
+  const analyzed = await analyzeDocument(document, glossaryTerms);
+  document.issues = analyzed.issues;
+  document.analysisNotes = analyzed.analysisNotes;
   document.status = "reviewing";
   document.reportReadyAt = new Date().toISOString();
 
@@ -112,6 +130,7 @@ export async function exportReport(documentId: string) {
     `형식: ${document.format.toUpperCase()}`,
     `업로드 시각: ${document.uploadedAt}`,
     `검사 결과 수: ${document.issues.length}`,
+    ...(document.analysisNotes.length > 0 ? [`분석 메모: ${document.analysisNotes.join(" / ")}`] : []),
     ""
   ];
 
@@ -123,6 +142,9 @@ export async function exportReport(documentId: string) {
     lines.push(`근거: ${issue.rationale}`);
     if (issue.suggestions[0]) {
       lines.push(`추천: ${issue.suggestions[0].text}`);
+    }
+    if (issue.evidences[0]) {
+      lines.push(`외부 근거: ${issue.evidences[0].title}`);
     }
     lines.push("");
   });

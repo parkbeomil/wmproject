@@ -8,9 +8,21 @@ export type IssueCategory =
   | "punctuation"
   | "number_unit"
   | "glossary"
+  | "romanization"
   | "heading_style"
   | "repetition"
   | "tone";
+
+export type EvidenceStatus = "supported" | "warning" | "unavailable";
+
+export interface ExternalEvidence {
+  id: string;
+  source: "stdict" | "kterm" | "kornorm";
+  title: string;
+  description: string;
+  status: EvidenceStatus;
+  link?: string;
+}
 
 export interface DocumentSection {
   id: string;
@@ -46,6 +58,7 @@ export interface Issue {
   location: DocumentLocation;
   groupKey: string;
   suggestions: Suggestion[];
+  evidences: ExternalEvidence[];
   reviewStatus: ReviewStatus;
   reviewedBy?: string;
   reviewedAt?: string;
@@ -80,6 +93,7 @@ export interface DocumentRecord {
   text: string;
   sections: DocumentSection[];
   issues: Issue[];
+  analysisNotes: string[];
   reportReadyAt?: string;
 }
 

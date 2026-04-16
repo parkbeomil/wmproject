@@ -14,6 +14,15 @@ export async function extractText(payload: CreateDocumentPayload) {
     };
   }
 
+  if (payload.format === "txt") {
+    return {
+      text: payload.text?.trim() ?? "",
+      extractionNote: payload.fileName
+        ? "TXT 파일 본문을 읽어 텍스트로 등록했습니다."
+        : undefined
+    };
+  }
+
   if (payload.format === "docx" && payload.fileBase64) {
     const result = await mammoth.extractRawText({
       buffer: decodeBase64(payload.fileBase64)

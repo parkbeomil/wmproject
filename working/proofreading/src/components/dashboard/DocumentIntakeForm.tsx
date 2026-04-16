@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useCreateDocument } from "@/hooks/useDashboardData";
+import { useDashboardStore } from "@/store/dashboardStore";
 import type { DocumentFormat } from "@/types/document";
 
 async function toBase64(file: File) {
@@ -16,17 +17,34 @@ async function toBase64(file: File) {
   return btoa(binary);
 }
 
+async function readTextFile(file: File) {
+  return file.text();
+}
+
+function getHelperMessage(format: DocumentFormat) {
+  if (format === "txt") {
+    return "TXT는 파일 본문을 직접 읽어 자동으로 입력칸에 반영합니다.";
+  }
+
+  if (format === "docx") {
+    return "DOCX는 자동 추출을 시도하고, 일부 서식은 단순화될 수 있습니다.";
+  }
+
+  return "HWP는 제한 안내와 함께 텍스트 확인을 요구합니다.";
+}
+
 export function DocumentIntakeForm() {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [bookTitle, setBookTitle] = useState("중학 수학 개념서");
   const [chapterTitle, setChapterTitle] = useState("3-2 근의 공식");
   const [format, setFormat] = useState<DocumentFormat>("docx");
   const [text, setText] = useState(
-    "# 1. 근의 공식\n이차방정식의 근을 구할때 판별식을 함께 확인한다.\n반지름은 4 cm 이고 넓이는 16 cm2이다."
+    "# 1. 근의 공식\n이차방정식의 근을 구할때 판별식을 함께 확인한다.\n가곡의 로마자 표기를 Kagok으로 적는 것은 잘못이다.\n반지름은 4 cm 이고 넓이는 16 cm2이다."
   );
   const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const createDocument = useCreateDocument();
+  const setSelectedDocumentId = useDashboardStore((state) => state.setSelectedDocumentId);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,16 +54,23 @@ export function DocumentIntakeForm() {
 
     startTransition(async () => {
       try {
+        const resolvedText =
+          format === "txt" && file ? await readTextFile(file) : text;
+
         const payload = {
           bookTitle,
           chapterTitle,
           format,
-          text,
+          text: resolvedText,
           fileName: file?.name,
           fileBase64: file ? await toBase64(file) : undefined
         };
 
         const created = await createDocument.mutateAsync(payload);
+        setSelectedDocumentId(created.id);
+        if (format === "txt" && resolvedText) {
+          setText(resolvedText);
+        }
         setNotice(
           created.extractionNote ??
             "문서가 등록되었습니다. 검사 실행 버튼으로 추천 목록을 생성할 수 있습니다."
@@ -132,9 +157,7 @@ export function DocumentIntakeForm() {
           >
             {isPending || createDocument.isPending ? "등록 중..." : "문서 등록"}
           </button>
-          <p className="text-sm text-slate-600">
-            DOCX는 자동 추출, HWP는 제한 안내와 함께 텍스트 확인을 요구합니다.
-          </p>
+          <p className="text-sm text-slate-600">{getHelperMessage(format)}</p>
         </div>
 
         {notice ? (
