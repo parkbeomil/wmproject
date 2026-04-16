@@ -42,6 +42,11 @@ export function DocumentQueue({ documents }: DocumentQueueProps) {
       </div>
 
       <div className="mt-6 space-y-3">
+        {documents.length === 0 ? (
+          <div className="rounded-xl border border-dashed border-white/15 bg-white/5 p-6 text-sm text-slate-300">
+            아직 등록된 문서가 없습니다. 먼저 Step 1에서 문서를 등록해 주세요.
+          </div>
+        ) : null}
         {documents.map((document) => {
           const selected = selectedDocumentId === document.id;
           const pendingCount = document.issues.filter((issue) => issue.reviewStatus === "pending").length;

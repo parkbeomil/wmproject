@@ -38,9 +38,7 @@ export function DocumentIntakeForm() {
   const [bookTitle, setBookTitle] = useState("중학 수학 개념서");
   const [chapterTitle, setChapterTitle] = useState("3-2 근의 공식");
   const [format, setFormat] = useState<DocumentFormat>("docx");
-  const [text, setText] = useState(
-    "# 1. 근의 공식\n이차방정식의 근을 구할때 판별식을 함께 확인한다.\n가곡의 로마자 표기를 Kagok으로 적는 것은 잘못이다.\n반지름은 4 cm 이고 넓이는 16 cm2이다."
-  );
+  const [text, setText] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const createDocument = useCreateDocument();

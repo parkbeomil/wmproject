@@ -8,7 +8,7 @@ interface DashboardStore {
 }
 
 export const useDashboardStore = create<DashboardStore>((set) => ({
-  selectedDocumentId: "doc-seed-1",
+  selectedDocumentId: null,
   reviewerName: "편집자 김",
   setSelectedDocumentId: (selectedDocumentId) => set({ selectedDocumentId }),
   setReviewerName: (reviewerName) => set({ reviewerName })

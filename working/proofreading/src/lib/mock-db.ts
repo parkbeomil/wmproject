@@ -29,6 +29,48 @@ const store =
 
 const { documents, glossaryTerms } = store;
 
+function rebuildDocumentText(document: DocumentRecord) {
+  const lines: string[] = [];
+
+  document.sections.forEach((section, index) => {
+    const prefix = section.level === 2 ? "##" : "#";
+    lines.push(`${prefix} ${section.heading}`);
+    lines.push(...section.paragraphs);
+
+    if (index < document.sections.length - 1) {
+      lines.push("");
+    }
+  });
+
+  document.text = lines.join("\n");
+}
+
+function applyApprovedSuggestion(document: DocumentRecord, issue: DocumentRecord["issues"][number]) {
+  const section = document.sections.find((item) => item.id === issue.location.sectionId);
+
+  if (!section) {
+    return false;
+  }
+
+  const paragraph = section.paragraphs[issue.location.paragraphIndex];
+  const suggestion = issue.suggestions[0]?.text;
+
+  if (!paragraph || !suggestion) {
+    return false;
+  }
+
+  const { tokenStart, tokenEnd } = issue.location;
+  const normalizedEnd = Math.min(Math.max(tokenEnd, tokenStart), paragraph.length);
+  const replaced =
+    paragraph.slice(0, tokenStart) + suggestion + paragraph.slice(normalizedEnd);
+
+  section.paragraphs[issue.location.paragraphIndex] = replaced;
+  rebuildDocumentText(document);
+  document.version += 1;
+
+  return true;
+}
+
 function calculateMetrics(docList: DocumentRecord[]) {
   const totalIssues = docList.reduce((acc, item) => acc + item.issues.length, 0);
   const pendingIssues = docList.reduce(
@@ -106,7 +148,7 @@ export async function updateReview(documentId: string, decision: ReviewDecision)
   const issue = document.issues.find((item) => item.id === decision.issueId);
 
   if (!issue) {
-    return null;
+    return document;
   }
 
   issue.reviewStatus = decision.status;
@@ -114,7 +156,16 @@ export async function updateReview(documentId: string, decision: ReviewDecision)
   issue.reviewMemo = decision.memo;
   issue.reviewedAt = decision.reviewedAt;
 
-  return issue;
+  if (decision.status === "approved") {
+    applyApprovedSuggestion(document, issue);
+    const analyzed = await analyzeDocument(document, glossaryTerms);
+    document.issues = analyzed.issues;
+    document.analysisNotes = analyzed.analysisNotes;
+    document.status = "reviewing";
+    document.reportReadyAt = new Date().toISOString();
+  }
+
+  return document;
 }
 
 export async function exportReport(documentId: string) {

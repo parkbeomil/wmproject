@@ -78,9 +78,10 @@ function ReviewItem({
                 key={action.status}
                 className={`rounded-full px-3 py-2 text-sm font-semibold text-white transition ${action.tone}`}
                 type="button"
+                disabled={reviewIssue.isPending}
                 onClick={() => void handleDecision(action.status)}
               >
-                {action.label}
+                {reviewIssue.isPending ? "처리 중..." : action.label}
               </button>
             ))}
           </div>

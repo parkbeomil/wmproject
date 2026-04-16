@@ -41,6 +41,37 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
 
   const selectedDocument =
     data.documents.find((document) => document.id === selectedDocumentId) ?? data.documents[0];
+  const hasDocument = Boolean(selectedDocument);
+  const hasExtractedText = Boolean(selectedDocument?.text?.trim());
+  const hasAnalysisResult = Boolean(selectedDocument && selectedDocument.issues.length > 0);
+  const canShowReport = Boolean(selectedDocument?.reportReadyAt && hasAnalysisResult);
+
+  const stepCards = [
+    {
+      step: "Step 1",
+      title: "문서 등록",
+      accent: "text-teal-300",
+      active: true
+    },
+    {
+      step: "Step 2",
+      title: "추출 확인 및 검사 실행",
+      accent: "text-rose-500",
+      active: hasDocument
+    },
+    {
+      step: "Step 3",
+      title: "추천 검토 및 판정",
+      accent: "text-teal-500",
+      active: hasAnalysisResult
+    },
+    {
+      step: "Step 4",
+      title: "리포트 및 기준 관리",
+      accent: "text-amber-500",
+      active: canShowReport
+    }
+  ];
 
   return (
     <AppShell>
@@ -66,22 +97,21 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
       <section className="mt-8 space-y-8">
         <div className="rounded-xl border border-slate-200/70 bg-white/70 p-4 backdrop-blur">
           <div className="grid gap-3 md:grid-cols-4">
-            <div className="rounded-lg bg-slate-950 px-4 py-3 text-white">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-300">Step 1</p>
-              <p className="mt-2 text-sm font-semibold">문서 등록</p>
-            </div>
-            <div className="rounded-lg bg-white px-4 py-3 text-slate-800 shadow-sm ring-1 ring-slate-200">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-rose-500">Step 2</p>
-              <p className="mt-2 text-sm font-semibold">검사 대상 선택 및 실행</p>
-            </div>
-            <div className="rounded-lg bg-white px-4 py-3 text-slate-800 shadow-sm ring-1 ring-slate-200">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-teal-500">Step 3</p>
-              <p className="mt-2 text-sm font-semibold">추천 검토 및 판정</p>
-            </div>
-            <div className="rounded-lg bg-white px-4 py-3 text-slate-800 shadow-sm ring-1 ring-slate-200">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-500">Step 4</p>
-              <p className="mt-2 text-sm font-semibold">리포트 및 기준 용어 관리</p>
-            </div>
+            {stepCards.map((card) => (
+              <div
+                key={card.step}
+                className={
+                  card.active
+                    ? "rounded-lg bg-slate-950 px-4 py-3 text-white"
+                    : "rounded-lg bg-white px-4 py-3 text-slate-400 shadow-sm ring-1 ring-slate-200"
+                }
+              >
+                <p className={`text-xs font-semibold uppercase tracking-[0.18em] ${card.active ? "text-white/70" : card.accent}`}>
+                  {card.step}
+                </p>
+                <p className="mt-2 text-sm font-semibold">{card.title}</p>
+              </div>
+            ))}
           </div>
         </div>
 
@@ -96,9 +126,42 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
         <div className="space-y-4">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-teal-500">Step 2</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">검사 실행</h2>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">추출 확인 및 검사 실행</h2>
           </div>
-          <DocumentQueue documents={data.documents} />
+          {hasDocument ? (
+            <div className="space-y-4">
+              <section className="rounded-xl border border-white/60 bg-white/85 p-6 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-medium uppercase tracking-[0.18em] text-rose-500">Extracted Text</p>
+                    <h3 className="mt-2 text-xl font-semibold tracking-tight text-slate-900">
+                      {selectedDocument.chapterTitle}
+                    </h3>
+                  </div>
+                  <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                    {selectedDocument.format.toUpperCase()}
+                  </span>
+                </div>
+                <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-7 text-slate-700">
+                  {hasExtractedText ? (
+                    <pre className="whitespace-pre-wrap font-sans">{selectedDocument.text}</pre>
+                  ) : (
+                    "아직 추출된 텍스트가 없습니다."
+                  )}
+                </div>
+                {selectedDocument.extractionNote ? (
+                  <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                    {selectedDocument.extractionNote}
+                  </div>
+                ) : null}
+              </section>
+              <DocumentQueue documents={data.documents} />
+            </div>
+          ) : (
+            <section className="rounded-xl border border-dashed border-slate-300 bg-white/70 p-8 text-sm text-slate-600">
+              문서를 등록하면 추출된 본문과 검사 실행 영역이 여기 표시됩니다.
+            </section>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -106,7 +169,13 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-500">Step 3</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">이슈 리뷰</h2>
           </div>
-          <IssueReviewPanel document={selectedDocument} />
+          {hasAnalysisResult ? (
+            <IssueReviewPanel document={selectedDocument} />
+          ) : (
+            <section className="rounded-xl border border-dashed border-slate-300 bg-white/70 p-8 text-sm text-slate-600">
+              검사 실행이 완료되면 추천 이슈와 검토 버튼이 여기 표시됩니다.
+            </section>
+          )}
         </div>
 
         <div className="space-y-4">
@@ -114,10 +183,16 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-500">Step 4</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">리포트와 기준 관리</h2>
           </div>
-          <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-            <ReportPanel document={selectedDocument} />
-            <GlossaryPanel glossaryTerms={data.glossaryTerms} />
-          </div>
+          {canShowReport ? (
+            <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
+              <ReportPanel document={selectedDocument} />
+              <GlossaryPanel glossaryTerms={data.glossaryTerms} />
+            </div>
+          ) : (
+            <section className="rounded-xl border border-dashed border-slate-300 bg-white/70 p-8 text-sm text-slate-600">
+              리뷰 결과가 생성되면 리포트 미리보기와 용어 기준 관리가 여기 열립니다.
+            </section>
+          )}
         </div>
       </section>
     </AppShell>

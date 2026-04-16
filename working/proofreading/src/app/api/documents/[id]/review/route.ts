@@ -9,11 +9,11 @@ interface Context {
 export async function POST(request: Request, context: Context) {
   const { id } = await context.params;
   const payload = (await request.json()) as ReviewDecision;
-  const issue = await updateReview(id, payload);
+  const document = await updateReview(id, payload);
 
-  if (!issue) {
+  if (!document) {
     return new NextResponse("검토 대상을 찾을 수 없습니다.", { status: 404 });
   }
 
-  return NextResponse.json(issue);
+  return NextResponse.json(document);
 }

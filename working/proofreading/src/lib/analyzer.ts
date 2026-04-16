@@ -88,6 +88,22 @@ function collectLatinTokens(document: DocumentRecord) {
   return [...tokens].slice(0, 5);
 }
 
+function findParagraphPosition(document: DocumentRecord, predicate: (paragraph: string) => boolean) {
+  for (let sectionIndex = 0; sectionIndex < document.sections.length; sectionIndex += 1) {
+    const section = document.sections[sectionIndex];
+
+    for (let paragraphIndex = 0; paragraphIndex < section.paragraphs.length; paragraphIndex += 1) {
+      const paragraph = section.paragraphs[paragraphIndex];
+
+      if (predicate(paragraph)) {
+        return { sectionIndex, paragraphIndex, paragraph };
+      }
+    }
+  }
+
+  return null;
+}
+
 export async function analyzeDocument(document: DocumentRecord, glossaryTerms: GlossaryTerm[]) {
   const issues: Issue[] = [];
   const analysisNotes: string[] = [];
@@ -205,9 +221,10 @@ export async function analyzeDocument(document: DocumentRecord, glossaryTerms: G
       });
     });
 
-    const paragraph = document.sections
-      .flatMap((section) => section.paragraphs)
-      .find((line) => variants.some((variant) => line.includes(variant)));
+    const paragraphPosition = findParagraphPosition(document, (line) =>
+      variants.some((variant) => line.includes(variant))
+    );
+    const paragraph = paragraphPosition?.paragraph;
 
     const bannedHit = term.bannedVariants.find((variant) =>
       document.sections.some((section) => section.paragraphs.some((paragraphLine) => paragraphLine.includes(variant)))
@@ -232,7 +249,13 @@ export async function analyzeDocument(document: DocumentRecord, glossaryTerms: G
           ? `금지 표기 \`${bannedHit}\`가 사용되었습니다. 표준 용어 \`${term.standard}\`로 통일해야 합니다.`
           : `같은 개념이 ${[...hits].join(", ")} 형태로 혼용되고 있습니다.`,
         groupKey: `glossary-${term.id}`,
-        location: createLocation(document, 0, 0, tokenStart, tokenStart + term.standard.length),
+        location: createLocation(
+          document,
+          paragraphPosition?.sectionIndex ?? 0,
+          paragraphPosition?.paragraphIndex ?? 0,
+          tokenStart,
+          tokenStart + term.standard.length
+        ),
         suggestions: [
           buildSuggestion(term.standard, `도서 기준 표준 용어는 \`${term.standard}\`입니다.`, "용어집", 0.98)
         ],
@@ -249,9 +272,8 @@ export async function analyzeDocument(document: DocumentRecord, glossaryTerms: G
       continue;
     }
 
-    const paragraph = document.sections
-      .flatMap((section) => section.paragraphs)
-      .find((line) => line.includes(token));
+    const paragraphPosition = findParagraphPosition(document, (line) => line.includes(token));
+    const paragraph = paragraphPosition?.paragraph;
 
     if (!paragraph) {
       continue;
@@ -266,7 +288,13 @@ export async function analyzeDocument(document: DocumentRecord, glossaryTerms: G
         excerpt: paragraph,
         rationale: `어문 규범 용례에서 \`${token}\`은(는) 오표기로 확인되었습니다.`,
         groupKey: `romanization-${token}`,
-        location: createLocation(document, 0, 0, tokenStart, tokenStart + token.length),
+        location: createLocation(
+          document,
+          paragraphPosition?.sectionIndex ?? 0,
+          paragraphPosition?.paragraphIndex ?? 0,
+          tokenStart,
+          tokenStart + token.length
+        ),
         suggestions: kornormResult.evidences.map((evidence) =>
           buildSuggestion(
             evidence.title.split(" -> ")[1] ?? token,
