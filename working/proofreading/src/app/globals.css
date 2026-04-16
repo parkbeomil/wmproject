@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fffdf8;
+  --foreground: #0f172a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+}
+
+body {
+  margin: 0;
+  color: var(--foreground);
+  font-family: "SUIT Variable", "Pretendard Variable", system-ui, sans-serif;
+}
+
+.font-serif {
+  font-family: var(--font-display), Georgia, serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
