@@ -20,6 +20,16 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/documents/[id]/analyze/route.js"
+    ],
+    "/api/documents/[id]/review/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/documents/[id]/review/route.js"
+    ],
+    "/api/documents/[id]/report/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/documents/[id]/report/route.js"
     ]
   }
 }

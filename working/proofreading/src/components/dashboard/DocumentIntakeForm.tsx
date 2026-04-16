@@ -23,21 +23,21 @@ async function readTextFile(file: File) {
 
 function getHelperMessage(format: DocumentFormat) {
   if (format === "txt") {
-    return "TXT는 파일 본문을 직접 읽어 자동으로 입력칸에 반영합니다.";
+    return "TXT를 기본으로 사용합니다. 아래 입력칸에 직접 붙여넣거나, 비워 둔 경우에만 TXT 파일 내용을 읽습니다.";
   }
 
   if (format === "docx") {
-    return "DOCX는 자동 추출을 시도하고, 일부 서식은 단순화될 수 있습니다.";
+    return "DOCX는 추후 지원 예정입니다.";
   }
 
-  return "HWP는 제한 안내와 함께 텍스트 확인을 요구합니다.";
+  return "HWP는 추후 지원 예정입니다.";
 }
 
 export function DocumentIntakeForm() {
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [bookTitle, setBookTitle] = useState("중학 수학 개념서");
   const [chapterTitle, setChapterTitle] = useState("3-2 근의 공식");
-  const [format, setFormat] = useState<DocumentFormat>("docx");
+  const [format, setFormat] = useState<DocumentFormat>("txt");
   const [text, setText] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -52,8 +52,13 @@ export function DocumentIntakeForm() {
 
     startTransition(async () => {
       try {
+        const trimmedInputText = text.trim();
         const resolvedText =
-          format === "txt" && file ? await readTextFile(file) : text;
+          trimmedInputText.length > 0
+            ? trimmedInputText
+            : format === "txt" && file
+              ? await readTextFile(file)
+              : "";
 
         const payload = {
           bookTitle,
@@ -66,7 +71,7 @@ export function DocumentIntakeForm() {
 
         const created = await createDocument.mutateAsync(payload);
         setSelectedDocumentId(created.id);
-        if (format === "txt" && resolvedText) {
+        if (!trimmedInputText && format === "txt" && resolvedText) {
           setText(resolvedText);
         }
         setNotice(
@@ -122,18 +127,22 @@ export function DocumentIntakeForm() {
               value={format}
               onChange={(event) => setFormat(event.target.value as DocumentFormat)}
             >
-              <option value="docx">DOCX</option>
-              <option value="hwp">HWP</option>
               <option value="txt">TXT</option>
+              <option value="docx" disabled>
+                DOCX (추후 지원)
+              </option>
+              <option value="hwp" disabled>
+                HWP (추후 지원)
+              </option>
             </select>
           </label>
           <label className="space-y-2 text-sm font-medium text-slate-700">
-            원고 파일
+            TXT 파일 선택
             <input
               ref={fileRef}
               className="w-full rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-3 text-sm text-slate-600"
               type="file"
-              accept=".docx,.hwp,.txt"
+              accept=".txt"
             />
           </label>
         </div>
@@ -144,6 +153,7 @@ export function DocumentIntakeForm() {
             className="min-h-40 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-medium text-slate-700 outline-none transition focus:border-rose-300"
             value={text}
             onChange={(event) => setText(event.target.value)}
+            placeholder="여기에 직접 원고 텍스트를 붙여넣어도 바로 검사할 수 있습니다. 입력칸이 비어 있을 때만 위 TXT 파일 내용을 읽습니다."
           />
         </label>
 

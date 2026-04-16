@@ -104,12 +104,119 @@ function findParagraphPosition(document: DocumentRecord, predicate: (paragraph: 
   return null;
 }
 
+const COMMON_TYPO_RULES: Array<{
+  pattern: RegExp;
+  wrong: string;
+  replacement: string;
+  title: string;
+  rationale: string;
+  confidence: number;
+}> = [
+  {
+    pattern: /않되/g,
+    wrong: "않되",
+    replacement: "안 되",
+    title: "부정 표현 오타",
+    rationale: "`안 되`가 맞는 표현이며 `않되`는 잘못된 결합입니다.",
+    confidence: 0.96
+  },
+  {
+    pattern: /안데/g,
+    wrong: "안데",
+    replacement: "하는데",
+    title: "어미 오타 의심",
+    rationale: "문맥상 `-는데` 계열 오타일 가능성이 높습니다.",
+    confidence: 0.72
+  },
+  {
+    pattern: /않데/g,
+    wrong: "않데",
+    replacement: "않는데",
+    title: "어미 오타 의심",
+    rationale: "`않데`는 비표준적 표현으로 `않는데`가 자연스럽습니다.",
+    confidence: 0.82
+  },
+  {
+    pattern: /됬/g,
+    wrong: "됬",
+    replacement: "됐",
+    title: "활용형 오타",
+    rationale: "`되었다`의 준말은 `됐다/됐다` 계열이 맞습니다.",
+    confidence: 0.97
+  },
+  {
+    pattern: /왠만/g,
+    wrong: "왠만",
+    replacement: "웬만",
+    title: "헷갈리기 쉬운 표기",
+    rationale: "`웬만`이 표준 표기입니다.",
+    confidence: 0.98
+  },
+  {
+    pattern: /몇일/g,
+    wrong: "몇일",
+    replacement: "며칠",
+    title: "날짜 표현 오타",
+    rationale: "`며칠`이 표준 표기입니다.",
+    confidence: 0.98
+  },
+  {
+    pattern: /할수/g,
+    wrong: "할수",
+    replacement: "할 수",
+    title: "의존 명사 띄어쓰기",
+    rationale: "`수`는 의존 명사이므로 띄어 씁니다.",
+    confidence: 0.95
+  },
+  {
+    pattern: /될수/g,
+    wrong: "될수",
+    replacement: "될 수",
+    title: "의존 명사 띄어쓰기",
+    rationale: "`수`는 의존 명사이므로 띄어 씁니다.",
+    confidence: 0.95
+  }
+];
+
 export async function analyzeDocument(document: DocumentRecord, glossaryTerms: GlossaryTerm[]) {
   const issues: Issue[] = [];
   const analysisNotes: string[] = [];
 
   document.sections.forEach((section, sectionIndex) => {
     section.paragraphs.forEach((paragraph, paragraphIndex) => {
+      COMMON_TYPO_RULES.forEach((rule) => {
+        const matches = [...paragraph.matchAll(rule.pattern)];
+
+        matches.forEach((match, matchIndex) => {
+          const tokenStart = match.index ?? 0;
+          issues.push(
+            buildIssue({
+              category: "spelling",
+              severity: "high",
+              title: rule.title,
+              excerpt: paragraph,
+              rationale: rule.rationale,
+              groupKey: `spelling-${rule.wrong}-${section.id}-${paragraphIndex}-${matchIndex}`,
+              location: createLocation(
+                document,
+                sectionIndex,
+                paragraphIndex,
+                tokenStart,
+                tokenStart + rule.wrong.length
+              ),
+              suggestions: [
+                buildSuggestion(
+                  rule.replacement,
+                  `${rule.wrong} -> ${rule.replacement} 수정안을 적용합니다.`,
+                  "오타 규칙 사전",
+                  rule.confidence
+                )
+              ]
+            })
+          );
+        });
+      });
+
       if (paragraph.includes("수 를")) {
         const tokenStart = findIndex(paragraph, "수 를");
         issues.push(

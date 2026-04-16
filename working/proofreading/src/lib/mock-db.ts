@@ -203,6 +203,18 @@ export async function exportReport(documentId: string) {
   return lines.join("\n");
 }
 
+export async function getDocumentText(documentId: string) {
+  const document = documents.find((item) => item.id === documentId);
+
+  if (!document) {
+    return null;
+  }
+
+  const fileName = `${document.bookTitle}_${document.chapterTitle}_수정본.txt`;
+
+  return { text: document.text, fileName };
+}
+
 export async function listGlossaryTerms() {
   return glossaryTerms;
 }

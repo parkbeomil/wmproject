@@ -37,6 +37,7 @@ declare namespace __next_route_internal_types__ {
     | `/api/glossary`
   type DynamicRoutes<T extends string = string> = 
     | `/api/documents/${SafeSlug<T>}/analyze`
+    | `/api/documents/${SafeSlug<T>}/download`
     | `/api/documents/${SafeSlug<T>}/report`
     | `/api/documents/${SafeSlug<T>}/review`
 

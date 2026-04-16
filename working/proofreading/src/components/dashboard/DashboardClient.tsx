@@ -43,8 +43,10 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
     data.documents.find((document) => document.id === selectedDocumentId) ?? data.documents[0];
   const hasDocument = Boolean(selectedDocument);
   const hasExtractedText = Boolean(selectedDocument?.text?.trim());
-  const hasAnalysisResult = Boolean(selectedDocument && selectedDocument.issues.length > 0);
-  const canShowReport = Boolean(selectedDocument?.reportReadyAt && hasAnalysisResult);
+  const hasAnalysisRun = Boolean(
+    selectedDocument && (selectedDocument.status === "reviewing" || selectedDocument.reportReadyAt)
+  );
+  const canShowReport = Boolean(selectedDocument?.reportReadyAt);
 
   const stepCards = [
     {
@@ -63,7 +65,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
       step: "Step 3",
       title: "추천 검토 및 판정",
       accent: "text-teal-500",
-      active: hasAnalysisResult
+      active: hasAnalysisRun
     },
     {
       step: "Step 4",
@@ -79,10 +81,10 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
         <div>
           <p className="text-sm font-medium uppercase tracking-[0.22em] text-rose-500">Proofreading Ops</p>
           <h1 className="mt-3 max-w-4xl font-serif text-5xl font-semibold tracking-tight text-slate-950">
-            교정자가 처음부터 찾지 않아도 되도록, 원고의 반복 오류와 용어 흔들림을 먼저 모읍니다.
+            교정편집기 : 원문의 문법오류와 맞춤법등을 검사합니다.
           </h1>
           <p className="mt-5 max-w-2xl text-base leading-8 text-slate-600">
-            출판사 내부 편집자를 위한 교정·교열 지원 서비스 MVP입니다. 문서 등록, 검사 실행, 추천 검토,
+            교과서 개발자들을 위한 교정·교열 지원 서비스 MVP입니다. 문서 등록, 검사 실행, 추천 검토,
             용어집 관리, 리포트 생성 흐름을 한 화면에서 확인할 수 있습니다.
           </p>
         </div>
@@ -169,7 +171,7 @@ export function DashboardClient({ initialData }: DashboardClientProps) {
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-500">Step 3</p>
             <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">이슈 리뷰</h2>
           </div>
-          {hasAnalysisResult ? (
+          {hasAnalysisRun ? (
             <IssueReviewPanel document={selectedDocument} />
           ) : (
             <section className="rounded-xl border border-dashed border-slate-300 bg-white/70 p-8 text-sm text-slate-600">
