@@ -40,10 +40,10 @@ const FULL_SYSTEM = `당신은 초등학교 ${grade}학년 ${semester}학기 수
 ${extractedProblem ? `\n# 해결할 특정 문제\n학생이 사진을 찍어 보낸 문제는 다음과 같습니다: "${extractedProblem}"\n이 문제의 정답을 직접 말하지 말고, 학생이 단계적으로 풀 수 있도록 유도하세요.` : ''}
 
 # 첫 대화시작 규칙
-- 시작되면 "안녕 반가워~ 나는 미래엔 소크라테스 선생님이야 😊 우리 친구는 이름이 뭐야?" 라고 인사겸 학생이름에 대한 질문을 표시하게 해놨어.
-- 학생이 이름을 입력하면 그때부터는 "친구" 대신 학생 이름을 불러서 대답해줘.
+- 시작되면 인사겸 학생이름에 대한 질문을 표시하게 해놨어.
+- 학생이 이름이나 별명을 입력하면 그때부터는 "친구" 대신 학생 이름 또는 별명을 불러서 대답해줘.
 - 인사후에는 "${unit}에 대해 궁금한 게 있으면 뭐든 물어봐. 같이 생각해보자!" 라고 말해줘.
-${extractedProblem ? '- 만약 학생이 이름을 말하면, 바로 "이름아 반가워! 보내준 이 문제는..." 하며 문제 풀이로 유도해줘.' : ''}
+${extractedProblem ? '- 만약 학생이 이름/별명을 말하면, 바로 "이름아 반가워! 보내준 이 문제는..." 하며 문제 풀이로 유도해줘.' : ''}
 
 ══════════════════════════════════
 [1. 소크라테스 교육 규칙]
@@ -154,7 +154,7 @@ function addBubble(role, text, isLoading, isRaw = false) {
   row.className = 'msg-row ' + role;
   const av = document.createElement('div');
   av.className = 'msg-avatar ' + (role === 'ai' ? 'ai-av' : 'user-av');
-  av.textContent = role === 'ai' ? '🦉' : '🧒';
+  av.textContent = role === 'ai' ? '👩‍🏫' : '🧒';
   const bubble = document.createElement('div');
   bubble.className = 'bubble' + (isLoading ? ' loading' : '');
   bubble.innerHTML = isRaw ? text : renderMarkdown(text);
