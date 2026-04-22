@@ -1,0 +1,156 @@
+[
+  {
+    "user_prompt": "12, 24, 36의 약수를 찾는 게임을 만들어주세요. 난이도는 보통으로 설정해주세요.",
+    "game_definition": {
+      "concept": {
+        "name": "약수",
+        "description": "어떤 수를 나누어떨어지게 하는 수입니다. 예를 들어 12의 약수는 1, 2, 3, 4, 6, 12입니다.",
+        "instruction": "{target}의 약수가 아닌 수를 격파하세요!",
+        "eliminate_mode": false,
+        "uses_target": true,
+        "validation_logic": {
+          "type": "code",
+          "function": "lambda num, target: target % num == 0"
+        },
+        "candidates": [12, 24, 36]
+      },
+      "game_rules": {
+        "airplane": {
+          "speed_scale": [0.7, 1.0, 1.3],
+          "max_total": [12, 18, 24],
+          "descent_rate": [0.012, 0.018, 0.024],
+          "num_range": [[1, 40], [1, 50], [1, 60]]
+        },
+        "frog": null
+      }
+    }
+  },
+  {
+    "user_prompt": "3, 4, 5의 배수를 찾는 개구리 게임. 쉬운 난이도로 해주세요.",
+    "game_definition": {
+      "concept": {
+        "name": "배수",
+        "description": "어떤 수를 곱하여 만들 수 있는 수입니다. 예를 들어 3의 배수는 3, 6, 9, 12, 15...",
+        "instruction": "{target}의 배수가 아닌 수를 밟으세요!",
+        "eliminate_mode": false,
+        "uses_target": true,
+        "validation_logic": {
+          "type": "code",
+          "function": "lambda num, target: num % target == 0"
+        },
+        "candidates": [3, 4, 5]
+      },
+      "game_rules": {
+        "airplane": null,
+        "frog": {
+          "rows": [4, 5, 6],
+          "num_range": [[1, 20], [1, 30], [1, 40]],
+          "speed": [30, 40, 50]
+        }
+      }
+    }
+  },
+  {
+    "user_prompt": "두 수의 공약수를 찾는 게임을 만들어주세요. 어려운 난이도로 설정해주세요.",
+    "game_definition": {
+      "concept": {
+        "name": "공약수",
+        "description": "두 수를 모두 나누어떨어지게 하는 수입니다. 예를 들어 12와 18의 공약수는 1, 2, 3, 6입니다.",
+        "instruction": "{target[0]}와 {target[1]}의 공약수가 아닌 수를 격파하세요!",
+        "eliminate_mode": false,
+        "uses_target": true,
+        "validation_logic": {
+          "type": "code",
+          "function": "lambda num, target: target[0] % num == 0 and target[1] % num == 0"
+        },
+        "candidates": [[12, 18], [20, 30], [24, 36]]
+      },
+      "game_rules": {
+        "airplane": {
+          "speed_scale": [1.0, 1.4, 1.8],
+          "max_total": [16, 24, 30],
+          "descent_rate": [0.016, 0.024, 0.032],
+          "num_range": [[1, 50], [1, 70], [1, 80]]
+        },
+        "frog": null
+      }
+    }
+  },
+  {
+    "user_prompt": "12와 18, 20과 30, 24와 36의 최대공약수를 구하는 게임. 보통 난이도.",
+    "game_definition": {
+      "concept": {
+        "name": "최대공약수",
+        "description": "두 수의 공약수 중 가장 큰 수입니다. 예를 들어 12와 18의 최대공약수는 6입니다.",
+        "instruction": "{target[0]}와 {target[1]}의 최대공약수가 아닌 수를 격파하세요!",
+        "eliminate_mode": false,
+        "uses_target": true,
+        "validation_logic": {
+          "type": "code",
+          "function": "lambda num, target: target[0] % num == 0 and target[1] % num == 0 and not any((target[0] % k == 0 and target[1] % k == 0) for k in range(num + 1, min(target[0], target[1]) + 1))"
+        },
+        "candidates": [[12, 18], [20, 30], [24, 36]]
+      },
+      "game_rules": {
+        "airplane": {
+          "speed_scale": [0.7, 1.0, 1.3],
+          "max_total": [12, 18, 24],
+          "descent_rate": [0.012, 0.018, 0.024],
+          "num_range": [[1, 40], [1, 50], [1, 60]]
+        },
+        "frog": null
+      }
+    }
+  },
+  {
+    "user_prompt": "4와 6의 공배수를 찾는 개구리 게임 만들어줘. 보통 난이도.",
+    "game_definition": {
+      "concept": {
+        "name": "공배수",
+        "description": "두 수의 배수를 동시에 만족하는 수입니다. 예를 들어 4와 6의 공배수는 12, 24, 36...",
+        "instruction": "{target[0]}와 {target[1]}의 공배수가 아닌 수를 밟으세요!",
+        "eliminate_mode": false,
+        "uses_target": true,
+        "validation_logic": {
+          "type": "code",
+          "function": "lambda num, target: num % target[0] == 0 and num % target[1] == 0"
+        },
+        "candidates": [[4, 6], [5, 8], [6, 12]]
+      },
+      "game_rules": {
+        "airplane": null,
+        "frog": {
+          "rows": [5, 7, 9],
+          "num_range": [[1, 30], [2, 60], [3, 90]],
+          "speed": [45, 65, 85]
+        }
+      }
+    }
+  },
+  {
+    "user_prompt": "4와 6, 5와 8, 6과 12의 최소공배수 게임. 쉬운 난이도로.",
+    "game_definition": {
+      "concept": {
+        "name": "최소공배수",
+        "description": "두 수의 공배수 중 가장 작은 수입니다. 예를 들어 4와 6의 최소공배수는 12입니다.",
+        "instruction": "{target[0]}와 {target[1]}의 최소공배수가 아닌 수를 격파하세요!",
+        "eliminate_mode": false,
+        "uses_target": true,
+        "validation_logic": {
+          "type": "code",
+          "function": "lambda num, target: num % target[0] == 0 and num % target[1] == 0 and not any((k % target[0] == 0 and k % target[1] == 0) for k in range(max(target[0], target[1]), num))"
+        },
+        "candidates": [[4, 6], [5, 8], [6, 12]]
+      },
+      "game_rules": {
+        "airplane": {
+          "speed_scale": [0.5, 0.65, 0.8],
+          "max_total": [8, 12, 16],
+          "descent_rate": [0.008, 0.012, 0.016],
+          "num_range": [[1, 30], [1, 40], [1, 50]]
+        },
+        "frog": null
+      }
+    }
+  }
+]
