@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>내 게임 만들기 - AI 게임 생성</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap">
+  <style>
+    :root {
+      --bg: #F7F1E8;
+      --bg-accent: #FFF7ED;
+      --surface: rgba(255,255,255,0.92);
+      --surface2: #F4EEE5;
+      --border: rgba(99,86,71,0.14);
+      --border2: rgba(99,86,71,0.22);
+      --text: #1F1A16;
+      --text2: #6A6258;
+      --text3: #958B7F;
+      --blue: #3D6BEE;
+      --blue-light: #EAF0FF;
+      --blue-mid: #C6D4FF;
+      --teal: #0E9A77;
+      --teal-light: #E2F6F0;
+      --teal-mid: #8FD9C5;
+      --radius: 14px;
+      --radius-xl: 28px;
+      --shadow: 0 10px 24px rgba(49,38,30,0.06), 0 2px 6px rgba(49,38,30,0.04);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Gowun Dodum', 'Noto Sans KR', sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(61,107,238,0.12), transparent 28%),
+        radial-gradient(circle at top right, rgba(14,154,119,0.11), transparent 24%),
+        linear-gradient(180deg, var(--bg-accent) 0%, var(--bg) 100%);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.6;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      inset: auto;
+      width: 420px;
+      height: 420px;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(30px);
+      opacity: 0.28;
+      z-index: 0;
+    }
+
+    body::before {
+      top: -160px;
+      right: -120px;
+      background: rgba(61,107,238,0.22);
+    }
+
+    body::after {
+      left: -160px;
+      bottom: -160px;
+      background: rgba(14,154,119,0.18);
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 24px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card {
+      background: rgba(255,255,255,0.9);
+      border: 1px solid rgba(99,86,71,0.12);
+      border-radius: var(--radius-xl);
+      padding: 20px 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+    }
+
+    input, textarea, select {
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 13px;
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 9px 12px;
+      background: var(--surface);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      width: 100%;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(43,92,230,0.1);
+    }
+
+    textarea { resize: none; line-height: 1.6; }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      font-family: 'Gowun Dodum', 'Noto Sans KR', sans-serif;
+      border: 1px solid rgba(99,86,71,0.18);
+      background: rgba(255,255,255,0.88);
+      color: var(--text);
+      cursor: pointer;
+      transition: all 0.18s ease;
+      white-space: nowrap;
+      box-shadow: 0 6px 14px rgba(49,38,30,0.06);
+    }
+
+    .btn:hover { background: #fff; border-color: rgba(99,86,71,0.26); transform: translateY(-1px); }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
+
+    .btn-primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .btn-primary:hover { background: #2d59d6; border-color: #2d59d6; }
+
+    .btn-sm { padding: 5px 12px; font-size: 12px; }
+
+    .prog-bar { height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; }
+    .prog-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+    .prog-blue { background: var(--blue); }
+
+    .empty-state { text-align: center; padding: 48px 24px; }
+    .empty-state svg { opacity: 0.3; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; color: var(--text3); }
+
+    h1 { font-size: 22px; font-weight: 700; }
+    .subtitle { font-size: 13px; color: var(--text2); margin-top: 4px; }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 20px;
+    }
+
+    .form-section { margin-bottom: 12px; }
+    .form-label { font-size: 12px; color: var(--text2); display: block; margin-bottom: 4px; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .form-row > div { margin-bottom: 0; }
+
+    @media (max-width: 900px) {
+      .content-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div>
+    <h1>내 게임 만들기</h1>
+    <p class="subtitle">원하는 조건을 설정하면 AI가 맞춤 게임을 즉석에서 만들어줘요</p>
+  </div>
+
+  <div class="content-grid">
+    <div>
+      <div class="card" style="margin-bottom: 16px;">
+        <div style="font-size: 14px; font-weight: 700; margin-bottom: 14px;">게임 조건 설정</div>
+
+        <div class="form-section">
+          <label class="form-label">학습 목표</label>
+          <select id="cgConcept">
+            <option>약수의 의미와 구하기</option>
+            <option>공약수 찾기</option>
+            <option>최대공약수 구하기</option>
+            <option>배수 이해하기</option>
+            <option>공배수와 최소공배수</option>
+          </select>
+        </div>
+
+        <div class="form-section">
+          <label class="form-label">게임 유형</label>
+          <select id="cgType">
+            <option>빙고</option>
+            <option>OX 퀴즈</option>
+            <option>카드 매칭</option>
+            <option>스피드 퀴즈</option>
+            <option>숫자 야구</option>
+          </select>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label class="form-label">난이도</label>
+            <select id="cgLevel">
+              <option>쉬움</option>
+              <option selected>보통</option>
+              <option>어려움</option>
+            </select>
+          </div>
+          <div>
+            <label class="form-label">제한 시간</label>
+            <select id="cgTime">
+              <option>5분</option>
+              <option selected>10분</option>
+              <option>15분</option>
+              <option>제한 없음</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-section">
+          <label class="form-label">추가 요청사항 (선택)</label>
+          <textarea id="cgExtra" rows="3" placeholder="예: 사탕 나누기 실생활 예시로 만들어줘, 모둠 경쟁 방식으로..."></textarea>
+        </div>
+
+        <div class="form-section">
+          <label class="form-label">🔑 Anthropic API 키</label>
+          <input type="password" id="apiKey" placeholder="sk-ant-... (로컬스토리지에 저장됩니다)" />
+          <div style="font-size: 11px; color: var(--text3); margin-top: 6px;">
+            💡 키는 이 브라우저에만 저장되며, 서버로 전송되지 않습니다.
+          </div>
+        </div>
+
+        <button class="btn btn-primary" style="width: 100%;" onclick="generateGame()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1.5v2M7 10.5v2M1.5 7h2M10.5 7h2M3.2 3.2l1.4 1.4M9.4 9.4l1.4 1.4M3.2 10.8l1.4-1.4M9.4 4.6l1.4-1.4" stroke="white" stroke-width="1.2" stroke-linecap="round"/></svg>
+          AI 게임 생성하기
+        </button>
+      </div>
+    </div>
+
+    <div>
+      <div class="card" style="min-height: 300px;">
+        <div style="font-size: 14px; font-weight: 700; margin-bottom: 14px;">생성 결과</div>
+        <div id="cgResult">
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="8" y="8" width="24" height="24" rx="6" stroke="#6B6560" stroke-width="1.5"/><path d="M14 20h12M20 14v12" stroke="#6B6560" stroke-width="1.5" stroke-linecap="round"/></svg>
+            <p>조건을 설정하고<br>AI 게임 생성 버튼을 눌러보세요</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function generateGame() {
+  const concept = document.getElementById('cgConcept').value;
+  const type = document.getElementById('cgType').value;
+  const level = document.getElementById('cgLevel').value;
+  const time = document.getElementById('cgTime').value;
+  const extra = document.getElementById('cgExtra').value;
+
+  // API 키 조회: 로컬스토리지 > 입력 필드
+  let apiKey = localStorage.getItem('anthropic_api_key');
+  const inputApiKey = document.getElementById('apiKey').value.trim();
+
+  if (!apiKey && inputApiKey) {
+    apiKey = inputApiKey;
+    // 사용자가 입력한 키를 로컬스토리지에 저장할지 확인
+    if (confirm('API 키를 로컬스토리지에 저장하시겠습니까? (이후 입력할 필요가 없습니다)')) {
+      localStorage.setItem('anthropic_api_key', inputApiKey);
+    }
+  }
+
+  if (!apiKey) {
+    document.getElementById('cgResult').innerHTML = '<div style="color:#D85A57;font-size:13px;padding:24px;">⚠️ API 키가 필요합니다.<br><br>위의 API 키 입력 필드에 Anthropic API 키를 입력해주세요.<br><br><a href="https://console.anthropic.com" target="_blank" style="color:var(--blue);">📌 API 키 발급받기</a></div>';
+    return;
+  }
+
+  const resultEl = document.getElementById('cgResult');
+  resultEl.innerHTML = '<div style="padding:24px;text-align:center;"><div style="font-size:13px;color:var(--text2);margin-bottom:12px;">AI가 게임을 생성하고 있어요...</div><div class="prog-bar"><div class="prog-fill prog-blue" style="width:100%;animation:none;"></div></div></div>';
+
+  const prompt = `초등학교 5학년 수학 교사입니다. 아래 조건으로 수업용 미니 게임을 설계해주세요.
+
+- 학습 목표: ${concept}
+- 게임 유형: ${type}
+- 난이도: ${level}
+- 제한 시간: ${time}
+${extra ? '- 추가 요청: ' + extra : ''}
+
+다음 형식으로 응답해주세요:
+1. 게임 제목
+2. 게임 규칙 (3~4줄)
+3. 예시 문제 3개
+4. 진행 팁 (교사용)
+
+초등학생이 재미있게 참여할 수 있도록 구체적으로 작성해주세요.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json();
+      throw new Error(errorData.error?.message || `API Error: ${res.status}`);
+    }
+
+    const data = await res.json();
+    const text = data.content.map(c => c.text || '').join('').replace(/\n/g, '<br>');
+    resultEl.innerHTML = `<div style="font-size:13px;line-height:1.8;color:var(--text);">${text}</div><div style="margin-top:16px;display:flex;gap:8px;"><button class="btn btn-sm" onclick="copyToClipboard()">📋 복사</button><button class="btn btn-sm" onclick="generateGame()">🔄 다시 생성</button></div>`;
+  } catch(e) {
+    console.error('Error:', e);
+    resultEl.innerHTML = `<div style="color:#D85A57;font-size:13px;padding:24px;"><strong>❌ 오류 발생</strong><br><br>${e.message}<br><br><a href="https://console.anthropic.com" target="_blank" style="color:var(--blue);">📌 API 키 확인하기</a><br><br><button class="btn btn-sm" style="margin-top:12px;" onclick="clearApiKey()">🔄 API 키 초기화</button></div>`;
+  }
+}
+
+function clearApiKey() {
+  if (confirm('저장된 API 키를 삭제하시겠습니까?')) {
+    localStorage.removeItem('anthropic_api_key');
+    document.getElementById('apiKey').value = '';
+    alert('API 키가 삭제되었습니다.');
+  }
+}
+
+// 페이지 로드 시 저장된 API 키 표시
+window.addEventListener('DOMContentLoaded', () => {
+  const savedKey = localStorage.getItem('anthropic_api_key');
+  if (savedKey) {
+    // 마스킹된 형태로 표시
+    const masked = savedKey.slice(0, 7) + '••••••••••' + savedKey.slice(-4);
+    document.getElementById('apiKey').placeholder = `✓ 저장됨: ${masked}`;
+  }
+});
+
+function copyToClipboard() {
+  const resultEl = document.getElementById('cgResult');
+  const text = resultEl.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    alert('복사되었습니다!');
+  });
+}
+</script>
+
+</body>
+</html>
