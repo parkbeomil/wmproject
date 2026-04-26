@@ -8,6 +8,8 @@ const footerProgressEl = document.querySelector("#footerProgress");
 const livesEl = document.querySelector("#lives");
 const numberInput = document.querySelector("#numberInput");
 const numberLabel = document.querySelector('label[for="numberInput"]');
+const modeSelect = document.querySelector("#modeSelect");
+const modeLabel = document.querySelector('label[for="modeSelect"]');
 const startButton = document.querySelector("#startButton");
 const startOverlay = document.querySelector("#startOverlay");
 const messageOverlay = document.querySelector("#messageOverlay");
@@ -83,6 +85,7 @@ const MAZES = {
 const state = {
   mode: "ready",
   targetNumber: 12,
+  numberMode: 1,
   level: 1,
   lives: 3,
   score: 0,
@@ -108,10 +111,12 @@ function clampNumber(value) {
   return Math.min(100, Math.max(1, number));
 }
 
-function readUrlNumber() {
+function readUrlParams() {
   const params = new URLSearchParams(window.location.search);
-  if (!params.has("number")) return null;
-  return clampNumber(params.get("number"));
+  const number = params.has("number") ? clampNumber(params.get("number")) : null;
+  const type = params.has("type") ? parseInt(params.get("type"), 10) : 1;
+  const numberMode = (type === 1 || type === 2) ? type : 1;
+  return { number, numberMode };
 }
 
 function goalForLevel(level) {
@@ -200,13 +205,19 @@ function isWall(x, y) {
 }
 
 function isCorrectNumber(value) {
-  return state.targetNumber % value === 0 || value % state.targetNumber === 0;
+  if (state.numberMode === 1) {
+    return state.targetNumber % value === 0;
+  }
+  if (state.numberMode === 2) {
+    return value % state.targetNumber === 0;
+  }
+  return false;
 }
 
 function makeCorrectNumbers() {
   const numbers = [];
   for (let i = 1; i <= 100; i += 1) {
-    if (state.targetNumber % i === 0 || i % state.targetNumber === 0) {
+    if (isCorrectNumber(i)) {
       numbers.push(i);
     }
   }
@@ -265,12 +276,14 @@ function placeDots() {
 
 function startGame() {
   state.targetNumber = clampNumber(numberInput.value);
+  state.numberMode = parseInt(modeSelect.value, 10);
   state.level = 1;
   state.lives = 3;
   state.score = 0;
   state.mode = "playing";
   startOverlay.classList.add("hidden");
   messageOverlay.classList.add("hidden");
+  updateHud();
   setupLevel();
 }
 
@@ -293,7 +306,8 @@ function setupLevel() {
 
 function updateHud() {
   scoreEl.textContent = `점수 : ${String(state.score).padStart(2, "0")}`;
-  missionTextEl.textContent = `미션 : ${state.targetNumber}의 배수 및 약수를 찾아보아요.`;
+  const modeText = state.numberMode === 1 ? "약수" : "배수";
+  missionTextEl.textContent = `미션 : ${state.targetNumber}의 ${modeText}를 찾아보아요.`;
   levelEl.textContent = state.level;
   footerProgressEl.textContent = `${state.eaten}/${state.goal}`;
   livesEl.innerHTML = "";
@@ -676,12 +690,16 @@ numberInput.addEventListener("keydown", (event) => {
   if (event.key === "Enter") startGame();
 });
 
-const urlNumber = readUrlNumber();
-if (urlNumber) {
-  numberInput.value = urlNumber;
-  state.targetNumber = urlNumber;
+const urlParams = readUrlParams();
+if (urlParams.number) {
+  numberInput.value = urlParams.number;
+  state.targetNumber = urlParams.number;
+  state.numberMode = urlParams.numberMode;
+  modeSelect.value = urlParams.numberMode;
   numberInput.hidden = true;
   numberLabel.hidden = true;
+  modeSelect.hidden = true;
+  modeLabel.hidden = true;
   startButton.textContent = "시작하기";
   startOverlay.classList.add("param-start");
 }

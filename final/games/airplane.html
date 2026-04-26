@@ -7,10 +7,27 @@
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background:#111; display:flex; justify-content:center; align-items:center; min-height:100vh; }
 canvas { display:block; }
+#paramOverlay{display:none;position:absolute;top:0;left:0;width:100%;height:100%;justify-content:center;align-items:center;background:rgba(10,10,40,0.92);}
+#paramPanel{background:#1a1a3a;border:2px solid #00c8fa;border-radius:12px;padding:36px 48px;text-align:center;font-family:sans-serif;}
+#paramPanel h2{color:#ffd700;font-size:24px;margin-bottom:12px;}
+#paramPanel p{color:#9b9b9b;font-size:14px;margin-bottom:16px;}
+#paramNumber{font-size:28px;width:120px;text-align:center;background:#0e0e30;border:2px solid #00c8fa;border-radius:8px;color:#fff;padding:8px 12px;display:block;margin:0 auto 20px;}
+#paramStartBtn{background:#00c8fa;color:#0a0a28;border:none;border-radius:8px;font-size:18px;font-weight:bold;padding:10px 32px;cursor:pointer;}
+#paramStartBtn:hover{background:#ffd700;}
 </style>
 </head>
 <body>
+<div style="position:relative;display:inline-block;">
 <canvas id="c" width="800" height="600"></canvas>
+<div id="paramOverlay">
+  <div id="paramPanel">
+    <h2>학습할 숫자를 입력하세요</h2>
+    <p id="paramConceptLabel"></p>
+    <input id="paramNumber" type="number" min="1" max="999" value="12">
+    <button id="paramStartBtn">시작하기</button>
+  </div>
+</div>
+</div>
 <script>
 // ============================================================
 //  수학 갤러그 – HTML5 Canvas 버전
@@ -77,10 +94,8 @@ class Player {
   get rect(){ return{x:this.x-10,y:this.y-20,w:20,h:38}; }
   move(){
     const spd=5;
-    if(keys['ArrowLeft']  &&this.x>30)    this.x-=spd;
-    if(keys['ArrowRight'] &&this.x<W-30)  this.x+=spd;
-    if(keys['ArrowUp']    &&this.y>60)    this.y-=spd;
-    if(keys['ArrowDown']  &&this.y<H-40)  this.y+=spd;
+    if(keys['ArrowLeft']  &&this.x>30)   this.x-=spd;
+    if(keys['ArrowRight'] &&this.x<W-30) this.x+=spd;
   }
   shoot(now){
     if(now-this.lastShot>=290){this.lastShot=now; return new PBullet(this.x,this.y-21);}
@@ -145,9 +160,10 @@ class Enemy {
   get rect(){ return{x:this.x-27,y:this.y-20,w:54,h:40}; }
   draw(){
     const cx=this.x, cy=this.y;
-    ctx.fillStyle=this.isAvoid?'#ff3333':'#22cc22';
+    const showRed=this.isAvoid&&levelIdx===0;
+    ctx.fillStyle=showRed?'#ff3333':'#22cc22';
     ctx.beginPath(); ctx.roundRect(cx-27,cy-20,54,40,8); ctx.fill();
-    ctx.strokeStyle=this.isAvoid?'#cc0000':'#00aa00'; ctx.lineWidth=2;
+    ctx.strokeStyle=showRed?'#cc0000':'#00aa00'; ctx.lineWidth=2;
     ctx.beginPath(); ctx.roundRect(cx-27,cy-20,54,40,8); ctx.stroke();
     ctx.fillStyle='#fff'; ctx.font='bold 20px sans-serif';
     ctx.textAlign='center'; ctx.textBaseline='middle';
@@ -226,7 +242,7 @@ function buildEnemies(data,maxTotal){
   return pool.map((num,i)=>{
     const c=i%cols, r=Math.floor(i/cols);
     const stagger=r%2===1?gapX/2:0;
-    return new Enemy(num,avoidSet.has(num),startX+c*gapX+stagger,startY+r*gapY);
+    return new Enemy(num,!avoidSet.has(num),startX+c*gapX+stagger,startY+r*gapY);
   });
 }
 
@@ -301,7 +317,7 @@ function drawWin(score){
 let state='title', selConcept=0;
 let levels=[], levelIdx=0, player=null;
 let enemies=[], pBullets=[], eBullets=[], particles=[], floats=[];
-let descent=0, descentRate=0, startTime=0, lastEShot=0, eShootCd=2800;
+let descent=0, descentRate=0, startTime=0, lastEShot=0, eShootCd=2800, lastDescentStep=0;
 let bannerEnd=0, pauseSnap=null;
 let resultType='', resultScore=0;
 
@@ -314,7 +330,7 @@ function startGame(concept){
 function startLevel(){
   const data=levels[levelIdx];
   const spdScale=[0.65,0.9,1.2][Math.min(levelIdx,2)];
-  const maxTotal=[10,16,24][Math.min(levelIdx,2)];
+  const maxTotal=10+(levelIdx+1)*3;
   enemies=buildEnemies(data,maxTotal);
   for(const e of enemies) e.spd=e.baseSpd*spdScale;
   pBullets=[]; eBullets=[]; particles=[]; floats=[];
@@ -324,6 +340,7 @@ function startLevel(){
   lastEShot=performance.now();
   eShootCd=[2800,2000,1400][Math.min(levelIdx,2)];
   bannerEnd=performance.now()+2500;
+  lastDescentStep=bannerEnd;
   state='playing';
 }
 
@@ -337,21 +354,17 @@ function updatePlaying(now,dt){
   const t=(now-startTime)/1000;
   descent+=descentRate*dt;
 
+  // 5초마다 타겟 숫자 절반만큼 추가 하강
+  if(now>bannerEnd&&now-lastDescentStep>=5000){
+    descent+=levels[levelIdx].param/2;
+    lastDescentStep=now;
+  }
+
   const alive=enemies.filter(e=>e.alive);
 
   // 입력
   if(now>bannerEnd){
-    // 전방 한계: 가장 가까운 적보다 뒤로
-    let fwdLimit=60;
-    if(alive.length){
-      const topY=Math.min(...alive.map(e=>e.y));
-      fwdLimit=Math.max(60,topY+40);
-    }
-    // 임시로 플레이어 이동 (위쪽 제한)
-    const prevY=player.y;
     player.move();
-    if(player.y<fwdLimit) player.y=fwdLimit;
-
     if(keys['Space']){
       const b=player.shoot(now);
       if(b) pBullets.push(b);
@@ -384,7 +397,7 @@ function updatePlaying(now,dt){
         if(e.isAvoid){
           player.lives--;
           floats.push(new FloatText(
-            `${e.num}은(는) ${levels[levelIdx].param}의 ${levels[levelIdx].concept}! -1`,
+            `${e.num}은(는) ${levels[levelIdx].param}의 ${levels[levelIdx].concept}가 아닙니다! -1`,
             e.x,e.y-20,'#dc3737',110));
           for(let i=0;i<14;i++) particles.push(new Particle(e.x,e.y,'#dc3737'));
           if(player.lives<=0){player.lives=0;setResult('gameover');return;}
@@ -433,26 +446,49 @@ function updatePlaying(now,dt){
 
   // HUD 상단
   ctx.fillStyle='#0e0e30'; ctx.fillRect(0,0,W,48);
-  txt(`점수: ${player.score}`,10,24,'#ffd700',18,'left');
-  txt(`목숨: ${'♥ '.repeat(player.lives).trim()}`,190,24,'#dc3737',18,'left');
-  txt(`LEVEL ${levelIdx+1}`,W-10,24,'#c8c8c8',17,'right');
-
-  // HUD 하단 힌트
-  ctx.fillStyle='#0e0e30'; ctx.fillRect(0,H-28,W,28);
   const{param,concept}=levels[levelIdx];
-  txt(`목표: ${param}의 ${concept}는 피하세요! (빨간색 피하고 파란색 격파)`,8,H-14,'#00c8fa',13,'left');
+  txt(`목표: ${param}의 ${concept}를 맞추세요!`,10,24,'#00c8fa',16,'left');
+  txt(`LEVEL ${levelIdx+1}   점수: ${player.score}`,W-10,24,'#ffd700',17,'right');
+
+  // HUD 하단
+  ctx.fillStyle='#0e0e30'; ctx.fillRect(0,H-28,W,28);
+  txt(`목숨: ${'♥ '.repeat(player.lives).trim()}`,8,H-14,'#dc3737',16,'left');
+  txt(levelIdx===0?'초록색 격파 · 빨간색 피하고':'숫자를 잘 보고 격파하세요!',W-8,H-14,'#9b9b9b',13,'right');
 
   // 레벨 시작 배너
   if(now<=bannerEnd){
     ctx.fillStyle='rgba(0,0,0,.76)'; ctx.fillRect(0,H/2-65,W,130);
     txt(`LEVEL ${levelIdx+1}`,W/2,H/2-28,'#ffd700',38,'center',true);
-    txt(`${param}의 ${concept}가 아닌 수를 모두 격파하세요!`,W/2,H/2+22,'#fff',20);
+    txt(`${param}의 ${concept}를 모두 격파하세요!`,W/2,H/2+22,'#fff',20);
   }
 }
 
 function setResult(type){
   resultType=type; resultScore=player.score;
   state='result';
+}
+
+// ── URL 파라메터 ─────────────────────────────────────────────
+let paramMode=false;
+
+function readUrlParams(){
+  const p=new URLSearchParams(window.location.search);
+  const t=p.get('type');
+  const concept=(t==='2')?'배수':'약수';
+  const raw=p.get('number');
+  const n=raw!==null?parseInt(raw,10):NaN;
+  const number=(!isNaN(n)&&n>=1)?Math.min(n,999):null;
+  return{concept,number};
+}
+
+function buildLevelsForNumber(concept,param){
+  const hi=concept==='약수'?param:Math.min(99,param*8);
+  const divs=getDivisors(param).length;
+  const total=concept==='약수'?Math.max(18,divs+10):18;
+  const cols=total>18?7:6;
+  const rows=Math.ceil(total/cols);
+  const base={concept,param,lo:1,hi,cols,rows};
+  return[base,base,base];
 }
 
 // ── 메인 루프 ────────────────────────────────────────────────
@@ -471,6 +507,10 @@ function loop(t){
       if(jp['ArrowDown']) selConcept=(selConcept+1)%2;
       if(jp['Space']||jp['Enter']) startGame(selConcept===0?'약수':'배수');
       if(jp['Escape']) state='title';
+      break;
+    case 'waitParam':
+      ctx.fillStyle='#0a0a28'; ctx.fillRect(0,0,W,H);
+      updateStars();
       break;
     case 'playing':
       updatePlaying(t,dt);
@@ -494,17 +534,51 @@ function loop(t){
           levelIdx=0; startLevel();
         }
       }
-      if(jp['Escape']) state='title';
+      if(jp['Escape']){if(paramMode)location.reload();else state='title';}
       break;
     case 'win':
       drawWin(resultScore);
       if(jp['Space']||jp['Enter']){player=new Player();levelIdx=0;startLevel();}
-      if(jp['Escape']) state='title';
+      if(jp['Escape']){if(paramMode)location.reload();else state='title';}
       break;
   }
   clearJP();
   requestAnimationFrame(loop);
 }
+(function init(){
+  const urlP=readUrlParams();
+  const overlay=document.getElementById('paramOverlay');
+
+  if(urlP.number!==null){
+    paramMode=true;
+    levels=buildLevelsForNumber(urlP.concept,urlP.number);
+    player=new Player();
+    levelIdx=0;
+    startLevel();
+  } else {
+    state='waitParam';
+    overlay.style.display='flex';
+    const label=document.getElementById('paramConceptLabel');
+    label.textContent=urlP.concept==='배수'
+      ?'배수 게임 · 아래 숫자의 배수를 가진 적은 피하세요'
+      :'약수 게임 · 아래 숫자의 약수를 가진 적은 피하세요';
+    const btn=document.getElementById('paramStartBtn');
+    const inp=document.getElementById('paramNumber');
+    const go=()=>{
+      const n=parseInt(inp.value,10);
+      if(!n||n<1){inp.focus();return;}
+      overlay.style.display='none';
+      paramMode=true;
+      levels=buildLevelsForNumber(urlP.concept,n);
+      player=new Player();
+      levelIdx=0;
+      startLevel();
+    };
+    btn.addEventListener('click',go);
+    inp.addEventListener('keydown',e=>{if(e.key==='Enter')go();});
+  }
+})();
+
 requestAnimationFrame(loop);
 </script>
 </body>
