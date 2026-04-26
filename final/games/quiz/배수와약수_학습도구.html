@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>배수와 약수 탐험!</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;900&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --primary: #4F46E5;
+    --primary-light: #818CF8;
+    --secondary: #F59E0B;
+    --secondary-light: #FCD34D;
+    --success: #10B981;
+    --danger: #EF4444;
+    --bg: #F8FAFC;
+    --card: #FFFFFF;
+    --text: #1E293B;
+    --text-light: #64748B;
+    --radius: 16px;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: linear-gradient(135deg, var(--primary) 0%, #7C3AED 100%);
+    color: white;
+    text-align: center;
+    padding: 32px 20px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -20px; left: 0; right: 0;
+    height: 40px;
+    background: var(--bg);
+    border-radius: 50% 50% 0 0;
+  }
+  .header h1 { font-size: 2rem; font-weight: 900; margin-bottom: 6px; }
+  .header p { font-size: 1rem; opacity: .85; }
+
+  /* ── Tab Navigation ── */
+  .tab-nav {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 20px 20px 0;
+    position: relative;
+    z-index: 1;
+    margin-top: -10px;
+  }
+  .tab-btn {
+    padding: 12px 28px;
+    border: none;
+    border-radius: 12px;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .25s;
+    background: var(--card);
+    color: var(--text-light);
+    box-shadow: 0 2px 8px rgba(0,0,0,.08);
+  }
+  .tab-btn.active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 4px 16px rgba(79,70,229,.35);
+    transform: translateY(-2px);
+  }
+  .tab-btn:hover:not(.active) { background: #EEF2FF; color: var(--primary); }
+
+  .tab-content { display: none; padding: 24px 20px 40px; max-width: 900px; margin: 0 auto; }
+  .tab-content.active { display: block; }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--card);
+    border-radius: var(--radius);
+    padding: 28px;
+    margin-bottom: 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,.06);
+  }
+  .card h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── 배수 탐험 : 100칸 격자 ── */
+  .number-input-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+  }
+  .number-input-row label { font-weight: 600; font-size: .95rem; }
+  .num-input {
+    width: 80px;
+    padding: 10px 14px;
+    border: 2px solid #CBD5E1;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-family: inherit;
+    font-weight: 700;
+    text-align: center;
+    transition: border .2s;
+  }
+  .num-input:focus { outline: none; border-color: var(--primary); }
+  .go-btn {
+    padding: 10px 22px;
+    border: none;
+    border-radius: 10px;
+    background: var(--primary);
+    color: white;
+    font-family: inherit;
+    font-size: .95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .2s;
+  }
+  .go-btn:hover { background: #4338CA; }
+
+  .grid-100 {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px;
+    margin-top: 10px;
+  }
+  .grid-cell {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: .85rem;
+    font-weight: 600;
+    background: #F1F5F9;
+    color: var(--text-light);
+    transition: all .3s;
+    cursor: default;
+    position: relative;
+  }
+  .grid-cell.highlight {
+    background: var(--primary);
+    color: white;
+    transform: scale(1.08);
+    box-shadow: 0 2px 8px rgba(79,70,229,.3);
+    z-index: 1;
+  }
+  .grid-cell.base-num {
+    background: var(--secondary);
+    color: white;
+    transform: scale(1.12);
+    box-shadow: 0 2px 10px rgba(245,158,11,.4);
+    z-index: 2;
+  }
+
+  .result-text {
+    margin-top: 14px;
+    padding: 14px 18px;
+    background: #EEF2FF;
+    border-radius: 10px;
+    font-size: .95rem;
+    line-height: 1.7;
+    color: var(--primary);
+    font-weight: 600;
+  }
+
+  /* ── 약수 탐험 ── */
+  .divisor-visual {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-top: 16px;
+    justify-content: center;
+  }
+  .divisor-pair {
+    background: #F0FDF4;
+    border: 2px solid #BBF7D0;
+    border-radius: 12px;
+    padding: 14px 18px;
+    text-align: center;
+    min-width: 100px;
+    transition: all .3s;
+    cursor: default;
+  }
+  .divisor-pair:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(16,185,129,.2);
+  }
+  .divisor-pair .equation {
+    font-size: .85rem;
+    color: var(--text-light);
+    margin-top: 6px;
+  }
+  .divisor-pair .nums {
+    font-size: 1.3rem;
+    font-weight: 900;
+    color: #059669;
+  }
+
+  /* 직사각형 배열 시각화 */
+  .rect-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    margin-top: 18px;
+    justify-content: center;
+  }
+  .rect-box {
+    text-align: center;
+  }
+  .rect-box .label {
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--text-light);
+    margin-bottom: 6px;
+  }
+  .rect-grid {
+    display: inline-grid;
+    gap: 3px;
+  }
+  .rect-dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary-light);
+    transition: background .3s;
+  }
+
+  /* ── 퀴즈 ── */
+  .quiz-question {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+  .quiz-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+  .quiz-opt {
+    padding: 14px;
+    border: 2px solid #E2E8F0;
+    border-radius: 12px;
+    background: white;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .2s;
+    text-align: center;
+  }
+  .quiz-opt:hover { border-color: var(--primary); background: #EEF2FF; }
+  .quiz-opt.correct { border-color: var(--success); background: #ECFDF5; color: #059669; }
+  .quiz-opt.wrong { border-color: var(--danger); background: #FEF2F2; color: #DC2626; }
+  .quiz-opt.disabled { pointer-events: none; }
+
+  .quiz-feedback {
+    padding: 14px 18px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: .95rem;
+    display: none;
+    margin-bottom: 14px;
+  }
+  .quiz-feedback.show { display: block; }
+  .quiz-feedback.correct-fb { background: #ECFDF5; color: #059669; }
+  .quiz-feedback.wrong-fb { background: #FEF2F2; color: #DC2626; }
+
+  .next-btn {
+    padding: 12px 28px;
+    border: none;
+    border-radius: 10px;
+    background: var(--secondary);
+    color: white;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: none;
+  }
+  .next-btn.show { display: inline-block; }
+
+  .score-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+    font-weight: 600;
+    font-size: .9rem;
+    color: var(--text-light);
+  }
+  .score-bar .dots {
+    display: flex;
+    gap: 6px;
+  }
+  .score-dot {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: #E2E8F0;
+    transition: background .3s;
+  }
+  .score-dot.correct { background: var(--success); }
+  .score-dot.wrong { background: var(--danger); }
+  .score-dot.current { background: var(--secondary); }
+
+  /* 설명 박스 */
+  .explain-box {
+    background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-left: 4px solid var(--secondary);
+  }
+  .explain-box h3 { font-size: 1rem; margin-bottom: 8px; }
+  .explain-box p { font-size: .93rem; line-height: 1.7; color: #92400E; }
+
+  /* 반응형 */
+  @media (max-width: 600px) {
+    .header h1 { font-size: 1.5rem; }
+    .grid-cell { font-size: .7rem; }
+    .quiz-options { grid-template-columns: 1fr; }
+    .rect-dot { width: 14px; height: 14px; }
+    .tab-btn { padding: 10px 18px; font-size: .9rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>배수와 약수 탐험!</h1>
+  <p>숫자의 비밀을 직접 찾아보자</p>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('multiples')">배수 탐험</button>
+  <button class="tab-btn" onclick="switchTab('divisors')">약수 탐험</button>
+  <button class="tab-btn" onclick="switchTab('quiz')">퀴즈 도전</button>
+</div>
+
+<!-- ═══════════ 탭 1: 배수 탐험 ═══════════ -->
+<div id="tab-multiples" class="tab-content active">
+
+  <div class="explain-box">
+    <h3>💡 배수란?</h3>
+    <p>어떤 수에 1, 2, 3, 4, … 를 차례로 곱한 수를 그 수의 <strong>배수</strong>라고 해요.<br>
+    예를 들어 3의 배수는 3, 6, 9, 12, 15, … 이에요! (3×1, 3×2, 3×3, …)</p>
+  </div>
+
+  <div class="card">
+    <h2>🔍 배수 찾기</h2>
+    <div class="number-input-row">
+      <label>어떤 수의 배수를 찾아볼까?</label>
+      <input type="number" class="num-input" id="multipleInput" min="2" max="12" value="3" placeholder="2~12">
+      <button class="go-btn" onclick="showMultiples()">찾기!</button>
+    </div>
+    <p style="font-size:.85rem;color:var(--text-light);margin-bottom:8px;">아래 1부터 100까지의 수에서 배수가 색칠됩니다.</p>
+    <div class="grid-100" id="multipleGrid"></div>
+    <div class="result-text" id="multipleResult" style="display:none;"></div>
+  </div>
+
+  <div class="card">
+    <h2>🎯 배수 패턴 비교</h2>
+    <div class="number-input-row">
+      <label>두 수를 비교해봐요:</label>
+      <input type="number" class="num-input" id="compareA" min="2" max="12" value="2" placeholder="수1">
+      <span style="font-weight:700;">와</span>
+      <input type="number" class="num-input" id="compareB" min="2" max="12" value="3" placeholder="수2">
+      <button class="go-btn" onclick="compareMultiples()">비교!</button>
+    </div>
+    <div class="grid-100" id="compareGrid"></div>
+    <div class="result-text" id="compareResult" style="display:none;"></div>
+  </div>
+</div>
+
+<!-- ═══════════ 탭 2: 약수 탐험 ═══════════ -->
+<div id="tab-divisors" class="tab-content">
+
+  <div class="explain-box">
+    <h3>💡 약수란?</h3>
+    <p>어떤 수를 나누어떨어지게 하는 수를 그 수의 <strong>약수</strong>라고 해요.<br>
+    예를 들어 12의 약수는 1, 2, 3, 4, 6, 12예요! (12÷1=12, 12÷2=6, 12÷3=4, …)</p>
+  </div>
+
+  <div class="card">
+    <h2>🔍 약수 찾기</h2>
+    <div class="number-input-row">
+      <label>어떤 수의 약수를 찾아볼까?</label>
+      <input type="number" class="num-input" id="divisorInput" min="1" max="100" value="12" placeholder="1~100">
+      <button class="go-btn" onclick="showDivisors()">찾기!</button>
+    </div>
+    <div id="divisorPairs" class="divisor-visual"></div>
+    <div class="result-text" id="divisorResult" style="display:none;"></div>
+  </div>
+
+  <div class="card">
+    <h2>🧱 직사각형 배열로 보는 약수</h2>
+    <p style="font-size:.9rem;color:var(--text-light);margin-bottom:4px;">위에서 입력한 수를 직사각형 모양으로 배열할 수 있는 모든 방법을 보여줘요.</p>
+    <p style="font-size:.85rem;color:var(--text-light);margin-bottom:12px;">가로와 세로 수가 곧 약수의 쌍이에요!</p>
+    <div id="rectArea" class="rect-container"></div>
+  </div>
+</div>
+
+<!-- ═══════════ 탭 3: 퀴즈 도전 ═══════════ -->
+<div id="tab-quiz" class="tab-content">
+
+  <div class="card">
+    <h2>🏆 배수·약수 퀴즈</h2>
+    <div class="score-bar" id="scoreBar"></div>
+    <div class="quiz-question" id="quizQuestion"></div>
+    <div class="quiz-options" id="quizOptions"></div>
+    <div class="quiz-feedback" id="quizFeedback"></div>
+    <button class="next-btn" id="nextBtn" onclick="nextQuiz()">다음 문제 →</button>
+    <div id="quizComplete" style="display:none; text-align:center; padding: 30px 0;">
+      <div style="font-size:3rem; margin-bottom:12px;">🎉</div>
+      <div style="font-size:1.3rem; font-weight:900; margin-bottom:8px;" id="finalScore"></div>
+      <p style="color:var(--text-light); margin-bottom:18px;" id="finalMsg"></p>
+      <button class="go-btn" onclick="startQuiz()">다시 도전하기</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════ 탭 전환 ══════════ */
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  const tabs = ['multiples','divisors','quiz'];
+  document.querySelectorAll('.tab-btn')[tabs.indexOf(tab)].classList.add('active');
+  if (tab === 'quiz' && quizQuestions.length === 0) startQuiz();
+}
+
+/* ══════════ 배수 탐험 ══════════ */
+function buildGrid(containerId) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+  for (let i = 1; i <= 100; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'grid-cell';
+    cell.textContent = i;
+    cell.dataset.num = i;
+    container.appendChild(cell);
+  }
+}
+buildGrid('multipleGrid');
+buildGrid('compareGrid');
+
+function showMultiples() {
+  const n = parseInt(document.getElementById('multipleInput').value);
+  if (isNaN(n) || n < 1 || n > 100) return;
+  const cells = document.querySelectorAll('#multipleGrid .grid-cell');
+  let count = 0;
+  const multiples = [];
+  cells.forEach(cell => {
+    const v = parseInt(cell.dataset.num);
+    cell.className = 'grid-cell';
+    if (v % n === 0) {
+      cell.classList.add('highlight');
+      if (v === n) cell.classList.add('base-num');
+      count++;
+      if (multiples.length < 10) multiples.push(v);
+    }
+  });
+  const res = document.getElementById('multipleResult');
+  res.style.display = 'block';
+  res.innerHTML = `<strong>${n}의 배수</strong>는 1부터 100 사이에 <strong>${count}개</strong>가 있어요!<br>
+    ${multiples.join(', ')}${count > 10 ? ', …' : ''}<br>
+    <span style="font-size:.85rem;color:#6366F1;">규칙: ${n}칸마다 한 번씩 나타나요!</span>`;
+}
+
+function compareMultiples() {
+  const a = parseInt(document.getElementById('compareA').value);
+  const b = parseInt(document.getElementById('compareB').value);
+  if (isNaN(a) || isNaN(b) || a < 1 || b < 1) return;
+  const cells = document.querySelectorAll('#compareGrid .grid-cell');
+  const common = [];
+  cells.forEach(cell => {
+    const v = parseInt(cell.dataset.num);
+    cell.className = 'grid-cell';
+    const isA = v % a === 0, isB = v % b === 0;
+    if (isA && isB) {
+      cell.style.background = 'linear-gradient(135deg, var(--primary), #7C3AED)';
+      cell.style.color = 'white';
+      cell.style.transform = 'scale(1.1)';
+      cell.style.boxShadow = '0 2px 8px rgba(124,58,237,.3)';
+      cell.style.zIndex = '2';
+      cell.style.borderRadius = '8px';
+      common.push(v);
+    } else if (isA) {
+      cell.classList.add('highlight');
+    } else if (isB) {
+      cell.style.background = var_secondary_color();
+      cell.style.color = 'white';
+      cell.style.borderRadius = '8px';
+    }
+  });
+  const res = document.getElementById('compareResult');
+  res.style.display = 'block';
+  res.innerHTML = `<span style="color:var(--primary);">■ ${a}의 배수</span> &nbsp;
+    <span style="color:#F59E0B;">■ ${b}의 배수</span> &nbsp;
+    <span style="color:#7C3AED;">■ 공통 배수 (공배수)</span><br>
+    ${common.length > 0 ? `공배수: ${common.slice(0,8).join(', ')}${common.length > 8 ? ', …' : ''}` : ''}
+    ${common.length > 0 ? `<br>가장 작은 공배수(최소공배수): <strong>${common[0]}</strong>` : ''}`;
+}
+function var_secondary_color() { return '#F59E0B'; }
+
+showMultiples();
+
+/* ══════════ 약수 탐험 ══════════ */
+function getDivisors(n) {
+  const divs = [];
+  for (let i = 1; i <= n; i++) if (n % i === 0) divs.push(i);
+  return divs;
+}
+
+function showDivisors() {
+  const n = parseInt(document.getElementById('divisorInput').value);
+  if (isNaN(n) || n < 1 || n > 100) return;
+  const divs = getDivisors(n);
+
+  // 약수 쌍 카드
+  const pairsContainer = document.getElementById('divisorPairs');
+  pairsContainer.innerHTML = '';
+  const pairs = [];
+  for (let i = 0; i < divs.length; i++) {
+    const d = divs[i];
+    const pair = n / d;
+    if (d > pair) break;
+    pairs.push([d, pair]);
+  }
+  pairs.forEach(([a, b]) => {
+    const card = document.createElement('div');
+    card.className = 'divisor-pair';
+    card.innerHTML = `<div class="nums">${a} × ${b}</div><div class="equation">= ${n}</div>`;
+    pairsContainer.appendChild(card);
+  });
+
+  const res = document.getElementById('divisorResult');
+  res.style.display = 'block';
+  res.innerHTML = `<strong>${n}의 약수</strong>: ${divs.join(', ')} (총 <strong>${divs.length}개</strong>)<br>
+    <span style="font-size:.85rem;color:#6366F1;">${n}을(를) 나누어떨어지게 하는 수들이에요!</span>`;
+
+  // 직사각형 배열
+  showRects(n, pairs);
+}
+
+function showRects(n, pairs) {
+  const area = document.getElementById('rectArea');
+  area.innerHTML = '';
+  if (n > 48) {
+    area.innerHTML = '<p style="color:var(--text-light);font-size:.9rem;">숫자가 커서 직사각형 배열은 48 이하에서만 보여줍니다.</p>';
+    return;
+  }
+  pairs.forEach(([rows, cols]) => {
+    const box = document.createElement('div');
+    box.className = 'rect-box';
+    box.innerHTML = `<div class="label">${rows} × ${cols}</div>`;
+    const grid = document.createElement('div');
+    grid.className = 'rect-grid';
+    grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    for (let i = 0; i < n; i++) {
+      const dot = document.createElement('div');
+      dot.className = 'rect-dot';
+      // 약간 다른 색상 부여
+      const hue = 220 + (i % cols) * 15;
+      dot.style.background = `hsl(${hue}, 70%, 65%)`;
+      grid.appendChild(dot);
+    }
+    box.appendChild(grid);
+    area.appendChild(box);
+  });
+}
+
+showDivisors();
+
+/* ══════════ 퀴즈 ══════════ */
+let quizQuestions = [];
+let currentQ = 0;
+let score = 0;
+let answered = false;
+
+function generateQuizzes() {
+  const qs = [];
+
+  // 배수 문제 생성
+  function randInt(a, b) { return a + Math.floor(Math.random() * (b - a + 1)); }
+  function shuffle(arr) {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  }
+
+  // Q type 1: "다음 중 N의 배수는?"
+  for (let i = 0; i < 3; i++) {
+    const base = randInt(3, 9);
+    const correctVal = base * randInt(3, 12);
+    const wrongs = new Set();
+    while (wrongs.size < 3) {
+      const w = correctVal + randInt(-base+1, base-1);
+      if (w > 0 && w !== correctVal && w % base !== 0) wrongs.add(w);
+    }
+    const options = shuffle([correctVal, ...wrongs]);
+    qs.push({
+      question: `다음 중 <strong>${base}의 배수</strong>는 어느 것일까요?`,
+      options: options.map(String),
+      answer: String(correctVal),
+      explain: `${correctVal} = ${base} × ${correctVal/base} 이므로 ${base}의 배수예요!`
+    });
+  }
+
+  // Q type 2: "N의 약수가 아닌 것은?"
+  for (let i = 0; i < 2; i++) {
+    const n = [12, 18, 24, 20, 30, 36][randInt(0,5)];
+    const divs = getDivisors(n);
+    let wrong;
+    do { wrong = randInt(2, n-1); } while (n % wrong === 0);
+    const picks = shuffle(divs.filter(d => d > 1 && d < n)).slice(0, 3);
+    const options = shuffle([...picks, wrong]);
+    qs.push({
+      question: `다음 중 <strong>${n}의 약수가 아닌 것</strong>은?`,
+      options: options.map(String),
+      answer: String(wrong),
+      explain: `${n} ÷ ${wrong} = ${(n/wrong).toFixed(2)}… 나누어떨어지지 않으므로 약수가 아니에요!`
+    });
+  }
+
+  // Q type 3: "N의 약수의 개수는?"
+  for (let i = 0; i < 2; i++) {
+    const n = [8, 15, 16, 20, 24, 28, 36][randInt(0,6)];
+    const cnt = getDivisors(n).length;
+    const wrongs = new Set();
+    while (wrongs.size < 3) {
+      const w = cnt + randInt(-2, 3);
+      if (w > 0 && w !== cnt) wrongs.add(w);
+    }
+    const options = shuffle([cnt, ...wrongs]);
+    qs.push({
+      question: `<strong>${n}의 약수</strong>는 모두 몇 개일까요?`,
+      options: options.map(v => v + '개'),
+      answer: cnt + '개',
+      explain: `${n}의 약수: ${getDivisors(n).join(', ')} → ${cnt}개`
+    });
+  }
+
+  // Q type 4: 참/거짓
+  const tf = [
+    { q: '1은 모든 수의 약수이다.', a: 'O', explain: '어떤 수를 1로 나누면 항상 나누어떨어지므로 1은 모든 수의 약수!' },
+    { q: '0은 3의 배수이다.', a: 'O', explain: '3 × 0 = 0 이므로 0은 3의 배수예요!' },
+    { q: '어떤 수의 배수 중 가장 작은 수는 그 수 자신이다.', a: 'X', explain: '0도 배수이지만, 보통 자연수의 배수를 말할 때 가장 작은 배수는 그 수 자신이에요. (초등 과정에서는 O가 정답이지만 엄밀히는 상황에 따라 달라요)' },
+    { q: '짝수는 모두 2의 배수이다.', a: 'O', explain: '짝수는 2로 나누어떨어지는 수이므로 2의 배수!' },
+  ];
+  const picked = shuffle(tf).slice(0, 3);
+  picked.forEach(t => {
+    qs.push({
+      question: `<strong>O / X 문제</strong>: ${t.q}`,
+      options: ['O', 'X'],
+      answer: t.a,
+      explain: t.explain
+    });
+  });
+
+  return shuffle(qs).slice(0, 10);
+}
+
+function startQuiz() {
+  quizQuestions = generateQuizzes();
+  currentQ = 0;
+  score = 0;
+  answered = false;
+  document.getElementById('quizComplete').style.display = 'none';
+  renderQuiz();
+}
+
+function renderScoreBar() {
+  const bar = document.getElementById('scoreBar');
+  let html = `문제 ${currentQ + 1} / ${quizQuestions.length} &nbsp;&nbsp;<div class="dots">`;
+  for (let i = 0; i < quizQuestions.length; i++) {
+    let cls = '';
+    if (i < currentQ) cls = quizQuestions[i].userCorrect ? 'correct' : 'wrong';
+    else if (i === currentQ) cls = 'current';
+    html += `<div class="score-dot ${cls}"></div>`;
+  }
+  html += '</div>';
+  bar.innerHTML = html;
+}
+
+function renderQuiz() {
+  if (currentQ >= quizQuestions.length) { showResult(); return; }
+  const q = quizQuestions[currentQ];
+  answered = false;
+  document.getElementById('quizQuestion').innerHTML = q.question;
+  const optContainer = document.getElementById('quizOptions');
+  optContainer.innerHTML = '';
+  q.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'quiz-opt';
+    btn.textContent = opt;
+    btn.onclick = () => checkAnswer(opt, btn);
+    optContainer.appendChild(btn);
+  });
+  document.getElementById('quizFeedback').className = 'quiz-feedback';
+  document.getElementById('nextBtn').className = 'next-btn';
+  renderScoreBar();
+}
+
+function checkAnswer(selected, btn) {
+  if (answered) return;
+  answered = true;
+  const q = quizQuestions[currentQ];
+  const isCorrect = selected === q.answer;
+  q.userCorrect = isCorrect;
+  if (isCorrect) score++;
+
+  document.querySelectorAll('.quiz-opt').forEach(b => {
+    b.classList.add('disabled');
+    if (b.textContent === q.answer) b.classList.add('correct');
+  });
+  if (!isCorrect) btn.classList.add('wrong');
+
+  const fb = document.getElementById('quizFeedback');
+  fb.className = `quiz-feedback show ${isCorrect ? 'correct-fb' : 'wrong-fb'}`;
+  fb.innerHTML = isCorrect ? `✅ 정답! ${q.explain}` : `❌ 아쉬워요! ${q.explain}`;
+
+  document.getElementById('nextBtn').className = 'next-btn show';
+  renderScoreBar();
+}
+
+function nextQuiz() {
+  currentQ++;
+  renderQuiz();
+}
+
+function showResult() {
+  document.getElementById('quizQuestion').innerHTML = '';
+  document.getElementById('quizOptions').innerHTML = '';
+  document.getElementById('quizFeedback').className = 'quiz-feedback';
+  document.getElementById('nextBtn').className = 'next-btn';
+  document.getElementById('scoreBar').innerHTML = '';
+
+  const pct = Math.round(score / quizQuestions.length * 100);
+  document.getElementById('finalScore').textContent = `${score} / ${quizQuestions.length} (${pct}점)`;
+  let msg = '';
+  if (pct >= 90) msg = '🌟 대단해요! 배수와 약수 마스터!';
+  else if (pct >= 70) msg = '👏 잘했어요! 조금만 더 연습하면 완벽!';
+  else if (pct >= 50) msg = '💪 좋은 시작이에요! 다시 한 번 도전해볼까요?';
+  else msg = '📚 배수와 약수 탐험 탭에서 더 연습해보고 다시 도전!';
+  document.getElementById('finalMsg').textContent = msg;
+  document.getElementById('quizComplete').style.display = 'block';
+}
+
+startQuiz();
+</script>
+</body>
+</html>

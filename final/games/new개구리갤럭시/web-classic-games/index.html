@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>수학 클래식 게임</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="toolbar" aria-label="게임 설정">
+        <div class="brand">
+          <strong>수학 클래식 게임</strong>
+          <span id="statusText">프리셋 게임</span>
+        </div>
+        <div class="controls">
+          <div class="segmented" role="group" aria-label="게임 선택">
+            <button id="airplaneBtn" class="active" type="button">수학 갤러그</button>
+            <button id="frogBtn" type="button">개구리 연못</button>
+          </div>
+          <div class="segmented" role="group" aria-label="학습 개념 선택">
+            <button id="divisorBtn" class="active" type="button">약수</button>
+            <button id="multipleBtn" type="button">배수</button>
+          </div>
+          <button id="startBtn" class="primary" type="button">시작</button>
+        </div>
+      </section>
+
+      <section class="stage-wrap">
+        <canvas id="game" width="800" height="600" aria-label="수학 게임 캔버스"></canvas>
+      </section>
+    </main>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

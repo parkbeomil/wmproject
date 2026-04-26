@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="문제 사진을 찍거나 업로드하면 소크라테스 선생님이 함께 풀어드려요.">
+  <title>학습 설정 — 소크라테스 수학 선생님</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="socratic_math_demo2.css">
+  <style>
+    /* ── Setup Card ── */
+    #setup-card {
+      background: var(--bg-card);
+      backdrop-filter: blur(12px);
+      border-radius: var(--radius-lg);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      padding: 2.5rem;
+      box-shadow: var(--shadow);
+      animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      width: 100%;
+    }
+
+    .setup-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .setup-header h2 {
+      font-size: 26px;
+      background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+
+    .setup-header p {
+      font-size: 14px;
+      color: var(--text-sub);
+      line-height: 1.6;
+    }
+
+    /* ── Upload Zone ── */
+    #upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: var(--radius-md);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.25s;
+      background: #fafbff;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #upload-zone:hover,
+    #upload-zone.drag-over {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+
+    #upload-zone.drag-over {
+      transform: scale(1.01);
+    }
+
+    #upload-zone .upload-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+      display: block;
+      transition: transform 0.2s;
+    }
+
+    #upload-zone:hover .upload-icon {
+      transform: scale(1.1);
+    }
+
+    #upload-zone .upload-label {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    #upload-zone .upload-sub {
+      font-size: 12px;
+      color: var(--text-sub);
+    }
+
+    /* ── Preview ── */
+    #image-preview-wrap {
+      display: none;
+      margin-top: 1.5rem;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      position: relative;
+    }
+
+    #image-preview-wrap.visible {
+      display: block;
+    }
+
+    #image-preview {
+      width: 100%;
+      max-height: 240px;
+      object-fit: contain;
+      background: #f1f5f9;
+      border-radius: var(--radius-md);
+    }
+
+    #remove-image {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.5);
+      color: white;
+      border: none;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+    }
+
+    #remove-image:hover {
+      background: rgba(220,38,38,0.8);
+    }
+
+    /* ── Divider ── */
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 1.5rem 0;
+      color: var(--text-sub);
+      font-size: 13px;
+    }
+
+    .divider::before,
+    .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Start Button ── */
+    #start-study {
+      width: 100%;
+      padding: 14px;
+      border-radius: var(--radius-sm);
+      border: none;
+      background: var(--primary);
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+      margin-top: 0.5rem;
+      font-family: inherit;
+    }
+
+    #start-study:hover:not(:disabled) {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    #start-study:disabled {
+      background: var(--border);
+      cursor: not-allowed;
+      box-shadow: none;
+      transform: none;
+    }
+
+    /* ── Error Message ── */
+    #error-msg {
+      display: none;
+      background: #fef2f2;
+      border: 1px solid #fee2e2;
+      color: #991b1b;
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-top: 12px;
+    }
+
+    /* ── Loading Overlay ── */
+    #loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(8px);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    #loading-overlay.show {
+      display: flex;
+    }
+
+    .spinner {
+      width: 52px;
+      height: 52px;
+      border: 5px solid var(--primary-light);
+      border-top: 5px solid var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .loading-sub {
+      font-size: 13px;
+      color: var(--text-sub);
+    }
+  </style>
+</head>
+
+<body>
+  <div id="wrapper">
+    <div id="setup-card">
+      <div class="setup-header">
+        <h2>OWL START 🦉</h2>
+        <p>풀고 싶은 수학 문제를 사진으로 찍거나<br>이미지 파일을 올려주세요!</p>
+      </div>
+
+      <!-- 이미지 업로드 영역 -->
+      <div id="upload-zone" role="button" tabindex="0" aria-label="이미지 업로드">
+        <span class="upload-icon">📷</span>
+        <p class="upload-label">사진 찍기 또는 파일 선택</p>
+        <p class="upload-sub">PNG, JPG, HEIC 등 이미지 파일 지원</p>
+      </div>
+
+      <!-- 숨겨진 파일 입력 (capture 속성 없음 → 앨범+카메라 모두 지원) -->
+      <input type="file" id="camera-input" accept="image/*" style="display:none">
+
+      <!-- 이미지 미리보기 -->
+      <div id="image-preview-wrap">
+        <img id="image-preview" alt="업로드된 문제 이미지">
+        <button id="remove-image" title="이미지 제거">✕</button>
+      </div>
+
+      <div id="error-msg"></div>
+
+      <div class="divider">또는</div>
+
+      <p style="font-size:13px; color:var(--text-sub); text-align:center; margin-bottom:1rem;">
+        이미지 없이 직접 단원을 입력해서 시작할 수도 있어요.
+      </p>
+
+      <div style="display:flex; gap:8px; margin-bottom:0.75rem;">
+        <select id="grade-select" style="flex:1; padding:12px 10px; border-radius:var(--radius-sm); border:1px solid var(--border); font-size:14px; font-family:inherit; color:var(--text-main); background:#fff; cursor:pointer;">
+          <option value="">학년 선택</option>
+          <option value="1">1학년</option>
+          <option value="2">2학년</option>
+          <option value="3">3학년</option>
+          <option value="4">4학년</option>
+          <option value="5" selected>5학년</option>
+          <option value="6">6학년</option>
+        </select>
+        <select id="semester-select" style="flex:1; padding:12px 10px; border-radius:var(--radius-sm); border:1px solid var(--border); font-size:14px; font-family:inherit; color:var(--text-main); background:#fff; cursor:pointer;">
+          <option value="1" selected>1학기</option>
+          <option value="2">2학기</option>
+        </select>
+      </div>
+
+      <input type="text" id="unit-input" placeholder="예: 분수의 덧셈, 배수와 약수..." style="width:100%; padding:12px 16px; border-radius:var(--radius-sm); border:1px solid var(--border); font-size:15px; font-family:inherit; margin-bottom:0.5rem; box-sizing:border-box;">
+
+      <button id="start-study" disabled>소크라테스 선생님 만나기 →</button>
+    </div>
+  </div>
+
+  <!-- 로딩 오버레이 -->
+  <div id="loading-overlay">
+    <div class="spinner"></div>
+    <p class="loading-text">문제를 분석하고 있어요 👩‍🏫</p>
+    <p class="loading-sub">잠깐만 기다려줘!</p>
+  </div>
+
+  <script src="study_setup.js"></script>
+</body>
+
+</html>

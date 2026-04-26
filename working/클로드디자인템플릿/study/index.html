@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>약수와 배수 수업도구 · 디자인 시안</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Gowun+Dodum&family=Gowun+Batang:wght@400;700&family=Black+Han+Sans&family=Jua&family=Do+Hyeon&family=Single+Day&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #2A2A2A; font-family: "Gowun Dodum", system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  img { display: block; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="shared/data.js"></script>
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="variants/A_dashboard.jsx"></script>
+<script type="text/babel" src="variants/A_screens.jsx"></script>
+<script type="text/babel" src="variants/B_dashboard.jsx"></script>
+<script type="text/babel" src="variants/B_screens.jsx"></script>
+<script type="text/babel" src="variants/C_dashboard.jsx"></script>
+<script type="text/babel" src="variants/C_screens.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+const App = () => (
+  <window.DesignCanvas title="약수와 배수 수업도구 · 3가지 디자인 방향">
+    <window.DCSection id="A" title="시안 A · 친구들의 교실 (따뜻한 노트 / 손그림 느낌)">
+      <window.DCArtboard id="A1" label="메인 대시보드" width={1280} height={820}>
+        <window.A_Dashboard />
+      </window.DCArtboard>
+      <window.DCArtboard id="A2" label="게임 진입 화면 (약수 갤러그)" width={1280} height={820}>
+        <window.A_GameDetail />
+      </window.DCArtboard>
+      <window.DCArtboard id="A3" label="선생님 도구함" width={1280} height={820}>
+        <window.A_TeacherTools />
+      </window.DCArtboard>
+    </window.DCSection>
+
+    <window.DCSection id="B" title="시안 B · 숫자나라 모험 (동화책 지도 / 차시별 모험)">
+      <window.DCArtboard id="B1" label="메인 모험 지도" width={1280} height={820}>
+        <window.B_Dashboard />
+      </window.DCArtboard>
+      <window.DCArtboard id="B2" label="게임 진입 화면 (공배수 미로)" width={1280} height={820}>
+        <window.B_GameDetail />
+      </window.DCArtboard>
+      <window.DCArtboard id="B3" label="모험 마스터의 작업실" width={1280} height={820}>
+        <window.B_TeacherTools />
+      </window.DCArtboard>
+    </window.DCSection>
+
+    <window.DCSection id="C" title="시안 C · 워크숍 노트 (모던 학습툴 / 큰 타이포 + 캐릭터)">
+      <window.DCArtboard id="C1" label="메인 대시보드" width={1280} height={820}>
+        <window.C_Dashboard />
+      </window.DCArtboard>
+      <window.DCArtboard id="C2" label="게임 진입 화면 (연못 건너기)" width={1280} height={820}>
+        <window.C_GameDetail />
+      </window.DCArtboard>
+      <window.DCArtboard id="C3" label="선생님 도구함" width={1280} height={820}>
+        <window.C_TeacherTools />
+      </window.DCArtboard>
+    </window.DCSection>
+  </window.DesignCanvas>
+);
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

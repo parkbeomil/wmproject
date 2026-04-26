@@ -1,0 +1,280 @@
+:root {
+  color-scheme: dark;
+  --bg: #000;
+  --panel: #02020c;
+  --wall: #162dff;
+  --wall-glow: #315cff;
+  --yellow: #ffd928;
+  --pink: #ff72c6;
+  --cyan: #55e6ff;
+  --orange: #ff9f2a;
+  --red: #ff3b4f;
+  --text: #fff6b8;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.shell {
+  display: grid;
+  place-items: center;
+  width: 100vw;
+  height: 100vh;
+  padding: 14px;
+}
+
+.game-frame {
+  display: grid;
+  grid-template-rows: 54px 1fr 30px;
+  width: min(calc(100vw - 28px), calc((100vh - 28px) * 4 / 3), 960px);
+  aspect-ratio: 4 / 3;
+  border: 2px solid var(--wall);
+  background: #000;
+  box-shadow:
+    0 0 0 1px #07177c,
+    0 0 14px rgba(49, 92, 255, 0.75);
+}
+
+.scorebar,
+.helpbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 16px;
+  background: #000;
+}
+
+.scorebar {
+  border-bottom: 2px solid var(--wall);
+}
+
+.scorebar,
+.helpbar {
+  color: #f8d978;
+  font-size: clamp(9px, 1.45vw, 12px);
+}
+
+.goal-display {
+  color: #fff25b;
+  overflow: hidden;
+  font-size: clamp(16px, 2.3vw, 24px);
+  font-weight: 900;
+  line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.score-display {
+  color: #fff;
+  font-size: clamp(14px, 2.1vw, 22px);
+  font-weight: 900;
+  line-height: 1;
+}
+
+.board-wrap {
+  position: relative;
+  min-height: 0;
+  background: #000;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.helpbar {
+  min-width: 0;
+  border-top: 2px solid var(--wall);
+  white-space: nowrap;
+}
+
+.life-row,
+.status-row {
+  display: flex;
+  align-items: center;
+}
+
+.life-row {
+  gap: 6px;
+  min-width: 64px;
+}
+
+.life-icon {
+  position: relative;
+  width: clamp(16px, 2.3vw, 22px);
+  aspect-ratio: 1;
+  background: var(--yellow);
+  border-radius: 50%;
+}
+
+.life-icon::after {
+  position: absolute;
+  top: 50%;
+  right: -1px;
+  width: 56%;
+  height: 56%;
+  background: #000;
+  clip-path: polygon(100% 0, 0 50%, 100% 100%);
+  content: "";
+  transform: translateY(-50%);
+}
+
+.status-row {
+  justify-content: flex-end;
+  gap: clamp(8px, 1.7vw, 18px);
+  min-width: 0;
+}
+
+.status-row span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(0, 0, 0, 0.82);
+}
+
+.overlay.hidden {
+  display: none;
+}
+
+.panel {
+  width: min(430px, 92%);
+  padding: 22px;
+  border: 2px solid var(--wall);
+  background: #000;
+  box-shadow:
+    inset 0 0 0 1px #67a0ff,
+    0 0 18px rgba(49, 92, 255, 0.8);
+}
+
+.panel.compact {
+  width: min(360px, 90%);
+  text-align: center;
+}
+
+.kicker {
+  margin: 0 0 8px;
+  color: var(--yellow);
+  font-size: 15px;
+}
+
+h1,
+h2 {
+  margin: 0 0 18px;
+  color: #fff;
+  letter-spacing: 0;
+}
+
+h1 {
+  font-size: clamp(24px, 3.6vw, 34px);
+  line-height: 1.12;
+}
+
+h2 {
+  font-size: 28px;
+}
+
+label {
+  display: block;
+  margin-bottom: 8px;
+  color: #9feaff;
+}
+
+.start-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.param-start .start-row {
+  display: flex;
+  justify-content: center;
+}
+
+.param-start button {
+  min-width: 160px;
+}
+
+input {
+  width: 100%;
+  min-width: 0;
+  border: 2px solid var(--wall);
+  border-radius: 0;
+  padding: 12px;
+  background: #000;
+  color: #fff;
+  font-size: 24px;
+}
+
+button {
+  border: 0;
+  border-radius: 0;
+  padding: 12px 18px;
+  background: var(--yellow);
+  color: #100900;
+  cursor: pointer;
+  font-weight: 900;
+  box-shadow: 0 5px 0 #b68200;
+}
+
+button:active {
+  transform: translateY(3px);
+  box-shadow: 0 2px 0 #b68200;
+}
+
+.hint {
+  margin: 16px 0 0;
+  color: #d7e6ff;
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+@media (max-width: 640px) {
+  .game-frame {
+    grid-template-rows: 60px 1fr 32px;
+  }
+
+  .scorebar,
+  .helpbar {
+    padding-inline: 8px;
+  }
+
+  .scorebar {
+    gap: 4px;
+  }
+
+  .panel {
+    padding: 18px;
+  }
+}

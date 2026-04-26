@@ -1,0 +1,30 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Jua&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", "Jua", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Jua", sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-blue-50 text-slate-900;
+  }
+}
+
+.math-card {
+  @apply bg-white rounded-3xl p-6 shadow-xl border-4 border-transparent transition-all duration-300;
+}
+
+.math-card:hover {
+  @apply border-yellow-400 -translate-y-2;
+}
+
+.btn-primary {
+  @apply px-8 py-4 bg-yellow-400 hover:bg-yellow-500 text-slate-900 font-bold rounded-2xl shadow-lg transition-all active:scale-95;
+}
+
+.bg-pattern {
+  background-image: radial-gradient(circle, #cbd5e1 1px, transparent 1px);
+  background-size: 30px 30px;
+}

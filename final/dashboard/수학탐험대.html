@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>수학 탐험대 🚀 | 4~6학년 수학 학습</title>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Noto+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --yellow: #FFD93D;
+    --orange: #FF6B35;
+    --mint: #00C9A7;
+    --blue: #4A90D9;
+    --purple: #9B5DE5;
+    --pink: #F72585;
+    --bg: #FFF9ED;
+    --card: #FFFFFF;
+    --text: #2D2D2D;
+    --text-muted: #888;
+    --radius: 20px;
+    --shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: linear-gradient(135deg, #FF6B35 0%, #FFD93D 100%);
+    padding: 28px 32px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  header::before {
+    content: '';
+    position: absolute;
+    top: -60px; right: -60px;
+    width: 220px; height: 220px;
+    background: rgba(255,255,255,0.12);
+    border-radius: 50%;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -40px; left: 10%;
+    width: 140px; height: 140px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 50%;
+  }
+  .header-badge {
+    display: inline-block;
+    background: rgba(255,255,255,0.25);
+    color: white;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 5px 14px;
+    border-radius: 30px;
+    margin-bottom: 12px;
+    letter-spacing: 0.5px;
+  }
+  header h1 {
+    font-family: 'Gaegu', cursive;
+    font-size: 42px;
+    color: white;
+    text-shadow: 2px 3px 0 rgba(0,0,0,0.1);
+    line-height: 1.2;
+  }
+  header p {
+    color: rgba(255,255,255,0.88);
+    font-size: 15px;
+    margin-top: 8px;
+  }
+  .header-stars {
+    position: absolute;
+    right: 32px; top: 24px;
+    font-size: 48px;
+    opacity: 0.6;
+  }
+
+  /* ── MAIN ── */
+  main {
+    max-width: 900px;
+    margin: -48px auto 0;
+    padding: 0 20px 60px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ── TABS ── */
+  .tab-nav {
+    display: flex;
+    gap: 8px;
+    background: white;
+    border-radius: 18px;
+    padding: 8px;
+    box-shadow: var(--shadow);
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .tab-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 10px 8px;
+    border: none;
+    border-radius: 12px;
+    background: transparent;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: all 0.2s;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 4px;
+  }
+  .tab-btn .tab-icon { font-size: 22px; }
+  .tab-btn:hover { background: var(--bg); color: var(--text); }
+  .tab-btn.active { background: var(--orange); color: white; box-shadow: 0 2px 12px rgba(255,107,53,0.35); }
+
+  /* ── CONTENT CARD ── */
+  .content-card {
+    background: white;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 32px;
+    margin-bottom: 20px;
+    display: none;
+  }
+  .content-card.active { display: block; animation: fadeUp 0.3s ease; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .concept-title {
+    font-family: 'Gaegu', cursive;
+    font-size: 28px;
+    color: var(--orange);
+    margin-bottom: 6px;
+  }
+  .concept-subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+  }
+
+  .concept-box {
+    background: #FFF9ED;
+    border-left: 4px solid var(--yellow);
+    border-radius: 0 12px 12px 0;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+    font-size: 15px;
+    line-height: 1.8;
+  }
+  .concept-box strong { color: var(--orange); }
+
+  .example-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .example-card {
+    background: var(--bg);
+    border-radius: 14px;
+    padding: 16px;
+    text-align: center;
+    border: 2px solid transparent;
+    transition: border-color 0.2s;
+    cursor: default;
+  }
+  .example-card:hover { border-color: var(--yellow); }
+  .example-card .ex-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+  .example-card .ex-math {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--blue);
+    font-family: 'Gaegu', cursive;
+  }
+  .example-card .ex-desc {
+    font-size: 13px;
+    color: var(--text);
+    margin-top: 6px;
+  }
+
+  .tip-box {
+    background: linear-gradient(135deg, #E8F4FF, #EEF9FF);
+    border-radius: 14px;
+    padding: 16px 20px;
+    display: flex; align-items: flex-start; gap: 12px;
+    font-size: 14px; line-height: 1.7;
+  }
+  .tip-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+
+  /* ── SHAPE SVG ── */
+  .shape-grid {
+    display: flex; flex-wrap: wrap; gap: 20px;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  .shape-item { text-align: center; }
+  .shape-item svg { display: block; margin: 0 auto 6px; }
+  .shape-item .shape-label { font-size: 13px; color: var(--text-muted); }
+  .shape-item .shape-formula { font-size: 12px; color: var(--blue); font-weight: 700; margin-top: 2px; }
+
+  /* ── GAME MAKER ── */
+  .game-maker {
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 60%, #0f3460 100%);
+    border-radius: var(--radius);
+    padding: 32px;
+    color: white;
+    position: relative;
+    overflow: hidden;
+  }
+  .game-maker::before {
+    content: '🎮';
+    position: absolute;
+    right: 24px; top: 20px;
+    font-size: 64px;
+    opacity: 0.12;
+  }
+
+  .game-maker-title {
+    font-family: 'Gaegu', cursive;
+    font-size: 30px;
+    color: var(--yellow);
+    margin-bottom: 6px;
+  }
+  .game-maker-desc {
+    font-size: 14px;
+    color: rgba(255,255,255,0.65);
+    margin-bottom: 24px;
+    line-height: 1.7;
+  }
+
+  .api-row {
+    display: flex; gap: 10px;
+    margin-bottom: 16px;
+    align-items: center;
+  }
+  .api-row label {
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    white-space: nowrap;
+  }
+  .api-input {
+    flex: 1;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: white;
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .api-input::placeholder { color: rgba(255,255,255,0.3); }
+  .api-input:focus { border-color: var(--mint); }
+
+  .prompt-section { margin-bottom: 16px; }
+  .prompt-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--mint);
+    margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .quick-btns {
+    display: flex; flex-wrap: wrap; gap: 8px;
+    margin-bottom: 12px;
+  }
+  .quick-btn {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 20px;
+    padding: 6px 14px;
+    color: rgba(255,255,255,0.85);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  .quick-btn:hover {
+    background: var(--mint);
+    border-color: var(--mint);
+    color: #1a1a2e;
+    font-weight: 700;
+  }
+
+  .game-textarea {
+    width: 100%;
+    min-height: 90px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.18);
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: white;
+    font-size: 14px;
+    font-family: 'Noto Sans KR', sans-serif;
+    resize: vertical;
+    outline: none;
+    line-height: 1.6;
+    transition: border-color 0.2s;
+  }
+  .game-textarea::placeholder { color: rgba(255,255,255,0.3); }
+  .game-textarea:focus { border-color: var(--mint); }
+
+  .gen-btn {
+    width: 100%;
+    margin-top: 14px;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--mint), #00a884);
+    border: none;
+    border-radius: 14px;
+    color: #1a1a2e;
+    font-size: 16px;
+    font-weight: 700;
+    font-family: 'Noto Sans KR', sans-serif;
+    cursor: pointer;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .gen-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 24px rgba(0,201,167,0.4);
+  }
+  .gen-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+  .status-bar {
+    margin-top: 12px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+    text-align: center;
+    min-height: 20px;
+  }
+  .status-bar.error { color: #ff6b6b; }
+  .status-bar.ok { color: var(--mint); }
+
+  .game-output {
+    margin-top: 20px;
+    border-radius: 16px;
+    overflow: hidden;
+    display: none;
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+  .game-output-header {
+    background: rgba(255,255,255,0.06);
+    padding: 10px 16px;
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 13px; color: rgba(255,255,255,0.6);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .dl-btn {
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    padding: 4px 12px;
+    color: rgba(255,255,255,0.7);
+    font-size: 12px;
+    cursor: pointer;
+    font-family: 'Noto Sans KR', sans-serif;
+  }
+  .dl-btn:hover { background: rgba(255,255,255,0.18); }
+
+  #game-frame {
+    width: 100%; border: none; display: block;
+    background: white;
+  }
+
+  /* ── DOTS DECORATION ── */
+  .dots-decoration {
+    text-align: center;
+    padding: 12px 0;
+    color: var(--text-muted);
+    font-size: 20px;
+    letter-spacing: 8px;
+    opacity: 0.4;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-stars">✨🔢</div>
+  <div class="header-badge">📚 초등 4~6학년</div>
+  <h1>수학 탐험대 🚀</h1>
+  <p>개념을 배우고, 직접 수학 게임을 만들어봐요!</p>
+</header>
+
+<main>
+
+  <!-- TAB NAV -->
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('fraction')">
+      <span class="tab-icon">🍕</span>분수
+    </button>
+    <button class="tab-btn" onclick="switchTab('decimal')">
+      <span class="tab-icon">🔢</span>소수
+    </button>
+    <button class="tab-btn" onclick="switchTab('shape')">
+      <span class="tab-icon">📐</span>도형
+    </button>
+    <button class="tab-btn" onclick="switchTab('ratio')">
+      <span class="tab-icon">⚖️</span>비와 비율
+    </button>
+  </div>
+
+  <!-- FRACTION -->
+  <div class="content-card active" id="tab-fraction">
+    <div class="concept-title">🍕 분수</div>
+    <div class="concept-subtitle">4~5학년 | 전체를 똑같이 나눈 것의 일부</div>
+    <div class="concept-box">
+      분수는 전체를 <strong>똑같이 나눈 것 중에서 일부</strong>를 나타내는 수야.<br>
+      <strong>분모</strong>(아래쪽)는 "몇 조각으로 나눴는지", <strong>분자</strong>(위쪽)는 "그 중 몇 조각인지"를 알려줘.
+    </div>
+    <div class="example-grid">
+      <div class="example-card">
+        <div class="ex-label">피자 8조각 중 3조각</div>
+        <div class="ex-math">3/8</div>
+        <div class="ex-desc">분자: 3, 분모: 8</div>
+      </div>
+      <div class="example-card">
+        <div class="ex-label">진분수</div>
+        <div class="ex-math">3/5</div>
+        <div class="ex-desc">분자 &lt; 분모</div>
+      </div>
+      <div class="example-card">
+        <div class="ex-label">가분수</div>
+        <div class="ex-math">7/4</div>
+        <div class="ex-desc">분자 ≥ 분모</div>
+      </div>
+      <div class="example-card">
+        <div class="ex-label">대분수</div>
+        <div class="ex-math">1¾</div>
+        <div class="ex-desc">자연수 + 진분수</div>
+      </div>
+    </div>
+    <div class="tip-box">
+      <span class="tip-icon">💡</span>
+      <div><strong>약분과 통분</strong>: 분수를 더하거나 빼려면 분모를 같게 만드는 <strong>통분</strong>이 필요해. 분모와 분자를 같은 수로 나누는 건 <strong>약분</strong>이라고 해!</div>
+    </div>
+  </div>
+
+  <!-- DECIMAL -->
+  <div class="content-card" id="tab-decimal">
+    <div class="concept-title">🔢 소수</div>
+    <div class="concept-subtitle">4~5학년 | 1보다 작은 부분을 점으로 표현</div>
+    <div class="concept-box">
+      소수는 <strong>소수점(.)</strong>을 사용해서 1보다 작은 수를 나타내.<br>
+      소수점 왼쪽은 자연수 부분, 오른쪽은 <strong>소수 부분</strong>이야.
+    </div>
+    <div class="example-grid">
+      <div class="example-card">
+        <div class="ex-label">소수 한 자리</div>
+        <div class="ex-math">0.7</div>
+        <div class="ex-desc">= 7/10</div>
+      </div>
+      <div class="example-card">
+        <div class="ex-label">소수 두 자리</div>
+        <div class="ex-math">0.35</div>
+        <div class="ex-desc">= 35/100</div>
+      </div>
+      <div class="example-card">
+        <div class="ex-label">소수 세 자리</div>
+        <div class="ex-math">1.256</div>
+        <div class="ex-desc">= 1256/1000</div>
+      </div>
+      <div class="example-card">
+        <div class="ex-label">분수 → 소수</div>
+        <div class="ex-math">1/4 = 0.25</div>
+        <div class="ex-desc">분자 ÷ 분모</div>
+      </div>
+    </div>
+    <div class="tip-box">
+      <span class="tip-icon">💡</span>
+      <div><strong>소수의 크기 비교</strong>: 자연수 부분 → 소수 첫째 자리 → 소수 둘째 자리 순서로 비교해. 0.9와 0.90은 같은 수야!</div>
+    </div>
+  </div>
+
+  <!-- SHAPE -->
+  <div class="content-card" id="tab-shape">
+    <div class="concept-title">📐 도형</div>
+    <div class="concept-subtitle">4~6학년 | 넓이와 둘레 구하기</div>
+    <div class="concept-box">
+      도형의 <strong>넓이</strong>는 내부를 채우는 넓이, <strong>둘레</strong>는 테두리의 길이야.<br>
+      각 도형마다 공식이 있으니 꼭 기억해두자!
+    </div>
+    <div class="shape-grid">
+      <div class="shape-item">
+        <svg width="80" height="70" viewBox="0 0 80 70">
+          <rect x="10" y="10" width="60" height="50" fill="#FFD93D" stroke="#FF6B35" stroke-width="2"/>
+          <text x="40" y="42" text-anchor="middle" font-size="11" fill="#2D2D2D">가로×세로</text>
+        </svg>
+        <div class="shape-label">직사각형</div>
+        <div class="shape-formula">넓이 = 가로 × 세로</div>
+      </div>
+      <div class="shape-item">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <polygon points="40,8 72,68 8,68" fill="#00C9A7" stroke="#009977" stroke-width="2"/>
+          <text x="40" y="58" text-anchor="middle" font-size="10" fill="#fff">밑×높/2</text>
+        </svg>
+        <div class="shape-label">삼각형</div>
+        <div class="shape-formula">넓이 = 밑변 × 높이 ÷ 2</div>
+      </div>
+      <div class="shape-item">
+        <svg width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="32" fill="#4A90D9" stroke="#2266aa" stroke-width="2"/>
+          <text x="40" y="44" text-anchor="middle" font-size="10" fill="white">π × r²</text>
+        </svg>
+        <div class="shape-label">원</div>
+        <div class="shape-formula">넓이 = 3.14 × 반지름²</div>
+      </div>
+      <div class="shape-item">
+        <svg width="80" height="70" viewBox="0 0 80 70">
+          <polygon points="15,60 65,60 75,10 5,10" fill="#9B5DE5" stroke="#7733bb" stroke-width="2"/>
+          <text x="40" y="42" text-anchor="middle" font-size="10" fill="white">(윗+아랫)÷2</text>
+        </svg>
+        <div class="shape-label">사다리꼴</div>
+        <div class="shape-formula">넓이 = (윗변+아랫변) × 높이 ÷ 2</div>
+      </div>
+    </div>
+    <div class="tip-box">
+      <span class="tip-icon">💡</span>
+      <div><strong>원주율 π</strong>: 원의 지름 대비 둘레의 비율로, 약 <strong>3.14</strong>를 사용해. 원의 둘레 = 2 × 3.14 × 반지름!</div>
+    </div>
+  </div>
+
+  <!-- RATIO -->
+  <div class="content-card" id="tab-ratio">
+    <div class="concept-title">⚖️ 비와 비율</div>
+    <div class="concept-subtitle">5~6학년 | 두 수의 관계 나타내기</div>
+    <div class="concept-box">
+      <strong>비</strong>는 두 수를 비교할 때 쓰는 표현이야. "A : B"로 쓰고 'A 대 B'라고 읽어.<br>
+      <strong>비율</strong>은 기준량에 대한 비교하는 양의 크기를 나타내: <strong>비율 = 비교하는 양 ÷ 기준량</strong>
+    </div>
+    <div class="example-grid">
+      <div class="example-card">
+        <div class="ex-label">사과 3개, 배 5개</div>
+        <div class="ex-math">3 : 5</div>
+        <div class="ex-desc">사과와 배의 비</div>
+      </div>
+      <div class="example-card">
+        <div class="ex-label">비율</div>
+        <div class="ex-math">3/5 = 0.6</div>
+        <div class="ex-desc">사과 수 ÷ 배 수</div>
+      </div>
+      <div class="example-card">
+        <div class="ex-label">백분율(%)</div>
+        <div class="ex-math">60%</div>
+        <div class="ex-desc">비율 × 100</div>
+      </div>
+      <div class="example-card">
+        <div class="ex-label">할인율 예시</div>
+        <div class="ex-math">20% 할인</div>
+        <div class="ex-desc">100원 → 80원</div>
+      </div>
+    </div>
+    <div class="tip-box">
+      <span class="tip-icon">💡</span>
+      <div><strong>백분율 (%)</strong>: 비율에 100을 곱한 값이야. 시험 점수, 할인율, 타율 등 일상에서 정말 많이 쓰여!</div>
+    </div>
+  </div>
+
+  <div class="dots-decoration">• • •</div>
+
+  <!-- GAME MAKER -->
+  <div class="game-maker">
+    <div class="game-maker-title">🎮 AI 게임 메이커</div>
+    <div class="game-maker-desc">
+      위에서 배운 수학 개념으로 나만의 게임을 만들어봐!<br>
+      어떤 게임을 만들고 싶은지 설명하면 AI가 바로 만들어줄게 ✨
+    </div>
+
+    <!-- API KEY -->
+    <div class="api-row">
+      <label>🔑 API 키</label>
+      <input type="password" class="api-input" id="api-key" placeholder="sk-ant-... (Anthropic API 키 입력)">
+    </div>
+
+    <!-- QUICK PROMPTS -->
+    <div class="prompt-section">
+      <div class="prompt-label">✏️ 어떤 게임 만들까? <span style="font-size:12px; font-weight:400; color:rgba(255,255,255,0.5)">(아래 예시를 눌러보세요)</span></div>
+      <div class="quick-btns">
+        <button class="quick-btn" onclick="setPrompt('분수를 맞히면 점수를 얻는 퀴즈 게임. 피자 그림으로 보여주면 좋겠어')">🍕 분수 퀴즈</button>
+        <button class="quick-btn" onclick="setPrompt('소수점 자리에 맞게 숫자를 놓는 퍼즐 게임. 시간 제한 있으면 좋겠어')">🔢 소수 퍼즐</button>
+        <button class="quick-btn" onclick="setPrompt('도형이 떨어지면 넓이를 계산해서 맞히는 게임. 직사각형, 삼각형, 원이 나와야 해')">📐 도형 계산</button>
+        <button class="quick-btn" onclick="setPrompt('비율을 맞히는 카드 뒤집기 게임. 같은 비율의 카드 두 개를 찾아 매칭하는 방식')">⚖️ 비율 카드 매칭</button>
+        <button class="quick-btn" onclick="setPrompt('분수 덧셈 뺄셈을 풀면서 캐릭터가 앞으로 나아가는 달리기 게임')">🏃 분수 달리기</button>
+        <button class="quick-btn" onclick="setPrompt('소수와 분수를 크기 순서로 정렬하는 게임. 드래그로 순서를 바꿀 수 있게')">🔄 크기 순서 정렬</button>
+      </div>
+      <textarea class="game-textarea" id="game-prompt" placeholder="예) 분수를 맞히면 캐릭터가 앞으로 가는 게임을 만들어줘. 귀엽게 만들어줘!"></textarea>
+    </div>
+
+    <button class="gen-btn" id="gen-btn" onclick="generateGame()">🚀 게임 만들기!</button>
+    <div class="status-bar" id="status"></div>
+
+    <!-- GAME OUTPUT -->
+    <div class="game-output" id="game-output">
+      <div class="game-output-header">
+        <span id="game-title-label">🎮 생성된 게임</span>
+        <button class="dl-btn" onclick="downloadGame()">💾 HTML 저장</button>
+      </div>
+      <iframe id="game-frame" sandbox="allow-scripts allow-same-origin"></iframe>
+    </div>
+  </div>
+
+</main>
+
+<script>
+let lastHtml = '';
+
+function switchTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.content-card').forEach(c => c.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+function setPrompt(text) {
+  document.getElementById('game-prompt').value = text;
+  document.getElementById('game-prompt').focus();
+}
+
+async function generateGame() {
+  const apiKey = document.getElementById('api-key').value.trim();
+  const prompt = document.getElementById('game-prompt').value.trim();
+  const status = document.getElementById('status');
+  const btn = document.getElementById('gen-btn');
+  const output = document.getElementById('game-output');
+
+  if (!apiKey) { setStatus('🔑 API 키를 먼저 입력해줘!', 'error'); return; }
+  if (!prompt) { setStatus('✏️ 어떤 게임을 만들지 설명해줘!', 'error'); return; }
+
+  btn.disabled = true;
+  output.style.display = 'none';
+  setStatus('🤖 AI가 게임을 만들고 있어요... 잠깐만 기다려줘! (15~30초)', '');
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8000,
+        system: `You are an expert HTML5 educational game developer for Korean elementary school students (grades 4-6).
+When asked to create a math game, produce a complete, fully playable HTML5 game in a single self-contained file.
+
+Requirements:
+- Output ONLY raw HTML. No markdown, no code fences, no explanation.
+- Use only vanilla JS and HTML5 Canvas or DOM. No external libraries.
+- The game must be immediately playable in an iframe (sandbox: allow-scripts allow-same-origin).
+- All text and instructions must be in Korean (한국어).
+- Target audience: Korean elementary school students age 10-12. Make it fun, colorful, and encouraging.
+- Include: clear start screen, gameplay with score, encouraging feedback ("잘했어요! 🎉"), game over with restart.
+- Add cheerful colors, emojis, and animations appropriate for children.
+- Keyboard and/or mouse controls must work inside an iframe.
+- The math content should be appropriate for grades 4-6 (fractions, decimals, shapes, ratios).
+- Start the file with <!DOCTYPE html>`,
+        messages: [{ role: 'user', content: `초등 4~6학년 수학 학습 게임을 만들어줘: ${prompt}` }]
+      })
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error?.message || `API 오류 (${res.status})`);
+
+    const html = data.content?.find(b => b.type === 'text')?.text || '';
+    if (!html.includes('<html') && !html.includes('<!DOCTYPE')) throw new Error('게임 HTML을 생성하지 못했어요. 다시 시도해줘!');
+
+    lastHtml = html;
+    const frame = document.getElementById('game-frame');
+    frame.srcdoc = html;
+    frame.onload = () => {
+      try {
+        const h = frame.contentDocument?.documentElement?.scrollHeight;
+        frame.style.height = (h && h > 100 ? Math.min(h, 600) : 520) + 'px';
+      } catch(e) { frame.style.height = '520px'; }
+    };
+
+    document.getElementById('game-title-label').textContent = '🎮 ' + prompt.slice(0, 30) + (prompt.length > 30 ? '...' : '');
+    output.style.display = 'block';
+    setStatus('✅ 게임 완성! 아래에서 바로 플레이해봐! 🎉', 'ok');
+  } catch(e) {
+    setStatus('❌ 오류: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function setStatus(msg, type) {
+  const el = document.getElementById('status');
+  el.textContent = msg;
+  el.className = 'status-bar' + (type ? ' ' + type : '');
+}
+
+function downloadGame() {
+  if (!lastHtml) return;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([lastHtml], { type: 'text/html' }));
+  a.download = 'math-game.html';
+  a.click();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) generateGame();
+});
+</script>
+</body>
+</html>
