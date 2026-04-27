@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./gradlew build *)",
+      "Bash(gradle --version)",
+      "Read(//Users/parkbi/workspace/winningM/wmproject/working/**)",
+      "Read(//Users/parkbi/workspace/winningM/wmproject/**)"
+    ]
+  }
+}
