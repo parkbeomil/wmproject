@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>맞춤법 검사기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f7f5;
+    --surface: #ffffff;
+    --border: #e5e5e2;
+    --border-strong: #d0d0cc;
+    --text-primary: #1a1a18;
+    --text-secondary: #6b6b68;
+    --text-muted: #9e9e9b;
+    --accent: #2563eb;
+    --accent-light: #eff4ff;
+    --accent-border: #bfcfff;
+    --error-bg: #fff5f5;
+    --error-text: #c0392b;
+    --error-border: #ffd5d5;
+    --correct-bg: #f0faf4;
+    --correct-text: #1a7a45;
+    --correct-border: #b8f0cc;
+    --highlight-error: #fef2c0;
+    --highlight-correct: #d4f5e2;
+    --category-spell: #e8f0ff;
+    --category-spell-text: #1e40af;
+    --category-space: #fef3e2;
+    --category-space-text: #92400e;
+    --category-standard: #f0fdf4;
+    --category-standard-text: #14532d;
+    --category-punct: #fdf4ff;
+    --category-punct-text: #6b21a8;
+    --radius: 8px;
+    --radius-lg: 12px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+    --transition: 0.18s ease;
+  }
+
+  body {
+    font-family: 'Noto Sans KR', sans-serif;
+    background: var(--bg);
+    color: var(--text-primary);
+    min-height: 100vh;
+    padding: 0;
+    font-size: 15px;
+    line-height: 1.6;
+  }
+
+  /* Header */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-icon {
+    width: 28px;
+    height: 28px;
+    background: var(--accent);
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .header-icon svg { width: 16px; height: 16px; fill: white; }
+  .header h1 {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.2px;
+  }
+  .header-sub {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-left: 2px;
+  }
+
+  /* Layout */
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 28px 20px 60px;
+  }
+
+  /* Input Section */
+  .input-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .input-header {
+    padding: 14px 18px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .input-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+  .char-count {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+  textarea {
+    width: 100%;
+    border: none;
+    outline: none;
+    resize: none;
+    padding: 12px 18px 14px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 15px;
+    line-height: 1.7;
+    color: var(--text-primary);
+    background: transparent;
+    min-height: 130px;
+  }
+  textarea::placeholder { color: var(--text-muted); }
+  .input-footer {
+    padding: 12px 18px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .input-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .btn-group { display: flex; gap: 8px; }
+  .btn-clear {
+    padding: 7px 14px;
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: transparent;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: var(--transition);
+  }
+  .btn-clear:hover { background: var(--bg); color: var(--text-primary); }
+  .btn-check {
+    padding: 7px 20px;
+    font-size: 13px;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-weight: 600;
+    color: white;
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-check:hover { background: #1d4ed8; }
+  .btn-check:disabled { background: #93afd8; cursor: not-allowed; }
+  .btn-check svg { width: 14px; height: 14px; fill: white; }
+
+  /* Loading */
+  .loading-bar {
+    height: 2px;
+    background: var(--border);
+    border-radius: 99px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    display: none;
+  }
+  .loading-bar.active { display: block; }
+  .loading-bar::after {
+    content: '';
+    display: block;
+    height: 100%;
+    width: 40%;
+    background: var(--accent);
+    border-radius: 99px;
+    animation: slide 1.2s ease-in-out infinite;
+  }
+  @keyframes slide {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(350%); }
+  }
+
+  /* Results */
+  .results-section { display: none; }
+  .results-section.visible { display: block; }
+
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  @media (max-width: 600px) {
+    .results-grid { grid-template-columns: 1fr; }
+  }
+
+  .result-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+  }
+  .result-card-header {
+    padding: 11px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .result-card-header .dot {
+    width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+  }
+  .dot-error { background: #f87171; }
+  .dot-correct { background: #4ade80; }
+  .result-card-header span {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+  }
+  .result-card-body {
+    padding: 14px 16px;
+    font-size: 15px;
+    line-height: 1.75;
+    min-height: 80px;
+    word-break: break-word;
+  }
+  .result-card-body.original mark {
+    background: var(--highlight-error);
+    color: var(--error-text);
+    border-radius: 3px;
+    padding: 0 2px;
+    font-style: normal;
+  }
+  .result-card-body.corrected mark {
+    background: var(--highlight-correct);
+    color: var(--correct-text);
+    border-radius: 3px;
+    padding: 0 2px;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-style: dotted;
+    text-decoration-color: var(--correct-text);
+  }
+  .result-card-body.corrected mark:hover { background: #abeac2; }
+
+  /* No errors */
+  .no-errors {
+    background: var(--correct-bg);
+    border: 1px solid var(--correct-border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .no-errors-icon {
+    width: 36px; height: 36px; border-radius: 50%;
+    background: var(--correct-text);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .no-errors-icon svg { width: 18px; height: 18px; fill: white; }
+  .no-errors-title { font-size: 14px; font-weight: 600; color: var(--correct-text); }
+  .no-errors-sub { font-size: 13px; color: #3d9e6a; margin-top: 1px; }
+
+  /* Corrections list */
+  .corrections-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+  .corrections-header {
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .corrections-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+  .corrections-title svg { width: 14px; height: 14px; }
+  .corrections-badge {
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--accent-light);
+    color: var(--accent);
+    border: 1px solid var(--accent-border);
+    border-radius: 99px;
+    padding: 2px 9px;
+  }
+  .correction-item {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    transition: background var(--transition);
+  }
+  .correction-item:last-child { border-bottom: none; }
+  .correction-item:hover { background: var(--bg); }
+  .correction-top {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .category-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+  .cat-맞춤법 { background: var(--category-spell); color: var(--category-spell-text); }
+  .cat-띄어쓰기 { background: var(--category-space); color: var(--category-space-text); }
+  .cat-표준어 { background: var(--category-standard); color: var(--category-standard-text); }
+  .cat-문장부호 { background: var(--category-punct); color: var(--category-punct-text); }
+
+  .correction-words {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-wrap: wrap;
+  }
+  .word-original {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--error-text);
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    text-decoration: line-through;
+    text-decoration-color: #f0a0a0;
+  }
+  .arrow-icon { color: var(--text-muted); font-size: 13px; flex-shrink: 0; }
+  .word-corrected {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--correct-text);
+    background: var(--correct-bg);
+    border: 1px solid var(--correct-border);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-family: 'JetBrains Mono', monospace;
+    cursor: pointer;
+  }
+  .word-corrected:hover { background: #d4f5e2; }
+  .correction-reason {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    padding-left: 2px;
+  }
+
+  /* Dictionary popup */
+  .dict-popup {
+    position: fixed;
+    z-index: 1000;
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    padding: 16px;
+    max-width: 300px;
+    min-width: 220px;
+    display: none;
+  }
+  .dict-popup.visible { display: block; }
+  .dict-popup-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .dict-word {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .dict-close {
+    width: 22px; height: 22px;
+    border: none; background: var(--bg); border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); font-size: 14px; flex-shrink: 0;
+    transition: var(--transition);
+  }
+  .dict-close:hover { background: var(--border); color: var(--text-primary); }
+  .dict-pos {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent);
+    background: var(--accent-light);
+    border-radius: 4px;
+    padding: 2px 7px;
+    display: inline-block;
+    margin-bottom: 8px;
+  }
+  .dict-def {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.65;
+    border-left: 2px solid var(--border-strong);
+    padding-left: 9px;
+    margin-bottom: 6px;
+  }
+  .dict-loading { font-size: 13px; color: var(--text-muted); text-align: center; padding: 8px 0; }
+  .dict-error { font-size: 13px; color: var(--text-muted); text-align: center; padding: 8px 0; }
+  .dict-source {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Error message */
+  .error-msg {
+    background: var(--error-bg);
+    border: 1px solid var(--error-border);
+    border-radius: var(--radius-lg);
+    padding: 14px 18px;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: var(--error-text);
+  }
+  .error-msg.visible { display: flex; }
+  .error-msg svg { width: 16px; height: 16px; fill: var(--error-text); flex-shrink: 0; }
+
+  /* Skipped notice */
+  .skipped-notice {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: var(--radius);
+    padding: 10px 14px;
+    font-size: 12px;
+    color: #92400e;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .skipped-notice.visible { display: flex; }
+
+  /* Config section */
+  .config-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .config-toggle {
+    width: 100%;
+    padding: 13px 18px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'Noto Sans KR', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    transition: background var(--transition);
+  }
+  .config-toggle:hover { background: var(--bg); }
+  .config-toggle-left { display: flex; align-items: center; gap: 7px; }
+  .config-toggle svg { width: 14px; height: 14px; }
+  .config-arrow {
+    width: 14px; height: 14px;
+    transition: transform var(--transition);
+    color: var(--text-muted);
+  }
+  .config-arrow.open { transform: rotate(180deg); }
+  .config-body {
+    display: none;
+    padding: 14px 18px;
+    border-top: 1px solid var(--border);
+    gap: 12px;
+    flex-direction: column;
+  }
+  .config-body.open { display: flex; }
+  .config-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .config-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-secondary);
+  }
+  .config-input {
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: 'JetBrains Mono', monospace;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text-primary);
+    outline: none;
+    transition: border-color var(--transition);
+  }
+  .config-input:focus { border-color: var(--accent); }
+  .config-hint { font-size: 11px; color: var(--text-muted); }
+
+  /* Responsive tweaks */
+  @media (max-width: 480px) {
+    .container { padding: 16px 12px 48px; }
+    .input-footer { flex-direction: column; align-items: flex-start; }
+    .btn-group { width: 100%; }
+    .btn-check, .btn-clear { flex: 1; justify-content: center; }
+    .correction-top { gap: 6px; }
+  }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-icon">
+    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+  </div>
+  <h1>맞춤법 검사기</h1>
+  <span class="header-sub">Claude AI + 표준국어대사전</span>
+</header>
+
+<div class="container">
+
+  <!-- API Config -->
+  <div class="config-section">
+    <button class="config-toggle" onclick="toggleConfig()">
+      <span class="config-toggle-left">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm1 14.93V17a1 1 0 00-2 0v-.07A8.001 8.001 0 014.07 13H5a1 1 0 000-2h-.93A8.001 8.001 0 0111 4.07V5a1 1 0 002 0v-.93A8.001 8.001 0 0119.93 11H19a1 1 0 000 2h.93A8.001 8.001 0 0113 16.93z"/></svg>
+        API 설정
+      </span>
+      <svg class="config-arrow" id="configArrow" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5H7z"/></svg>
+    </button>
+    <div class="config-body" id="configBody">
+      <div class="config-row">
+        <label class="config-label">Claude API 엔드포인트 (백엔드 프록시)</label>
+        <input class="config-input" id="apiEndpoint" type="text" value="http://localhost:8080/api/spell-check" placeholder="http://localhost:8080/api/spell-check">
+        <span class="config-hint">백엔드 Spring Boot 서버 주소를 입력하세요</span>
+      </div>
+      <div class="config-row">
+        <label class="config-label">표준국어대사전 API 엔드포인트</label>
+        <input class="config-input" id="dictEndpoint" type="text" value="http://localhost:8080/api/dictionary" placeholder="http://localhost:8080/api/dictionary">
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div class="input-card">
+    <div class="input-header">
+      <span class="input-label">입력</span>
+      <span class="char-count" id="charCount">0자</span>
+    </div>
+    <textarea id="inputText" placeholder="검사할 텍스트를 입력하세요..." oninput="onInput()"></textarea>
+    <div class="input-footer">
+      <span class="input-hint">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+        교정된 단어를 클릭하면 표준국어대사전을 조회합니다
+      </span>
+      <div class="btn-group">
+        <button class="btn-clear" onclick="clearAll()">초기화</button>
+        <button class="btn-check" id="checkBtn" onclick="checkSpelling()">
+          <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+          검사하기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-bar" id="loadingBar"></div>
+
+  <!-- Error -->
+  <div class="error-msg" id="errorMsg">
+    <svg viewBox="0 0 24 24"><path d="M12 2C6.47 2 2 6.47 2 12s4.47 10 10 10 10-4.47 10-10S17.53 2 12 2zm5 13.59L15.59 17 12 13.41 8.41 17 7 15.59 10.59 12 7 8.41 8.41 7 12 10.59 15.59 7 17 8.41 13.41 12 17 15.59z"/></svg>
+    <span id="errorText"></span>
+  </div>
+
+  <!-- Results -->
+  <div class="results-section" id="resultsSection">
+
+    <!-- No errors -->
+    <div class="no-errors" id="noErrors" style="display:none;">
+      <div class="no-errors-icon">
+        <svg viewBox="0 0 24 24"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg>
+      </div>
+      <div>
+        <div class="no-errors-title">교정할 내용이 없습니다</div>
+        <div class="no-errors-sub">맞춤법, 띄어쓰기, 표준어 모두 올바릅니다.</div>
+      </div>
+    </div>
+
+    <!-- Compare -->
+    <div class="results-grid" id="compareGrid" style="display:none;">
+      <div class="result-card">
+        <div class="result-card-header">
+          <div class="dot dot-error"></div>
+          <span>원문</span>
+        </div>
+        <div class="result-card-body original" id="originalDisplay"></div>
+      </div>
+      <div class="result-card">
+        <div class="result-card-header">
+          <div class="dot dot-correct"></div>
+          <span>교정문</span>
+        </div>
+        <div class="result-card-body corrected" id="correctedDisplay"></div>
+      </div>
+    </div>
+
+    <!-- Corrections -->
+    <div class="corrections-card" id="correctionsCard" style="display:none;">
+      <div class="corrections-header">
+        <span class="corrections-title">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6zm-1 2l5 5h-5V4zM7 14h10v2H7v-2zm0-4h5v2H7v-2z"/></svg>
+          교정 상세 내역
+        </span>
+        <span class="corrections-badge" id="correctionsBadge">0건</span>
+      </div>
+      <div id="correctionsList"></div>
+    </div>
+
+    <!-- Skipped -->
+    <div class="skipped-notice" id="skippedNotice">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/></svg>
+      <span id="skippedText"></span>
+    </div>
+
+  </div>
+</div>
+
+<!-- Dictionary popup -->
+<div class="dict-popup" id="dictPopup">
+  <div class="dict-popup-header">
+    <span class="dict-word" id="dictWord"></span>
+    <button class="dict-close" onclick="closeDict()">✕</button>
+  </div>
+  <div id="dictContent"></div>
+  <div class="dict-source">출처: 국립국어원 표준국어대사전</div>
+</div>
+
+<script>
+let lastResult = null;
+
+function toggleConfig() {
+  const body = document.getElementById('configBody');
+  const arrow = document.getElementById('configArrow');
+  body.classList.toggle('open');
+  arrow.classList.toggle('open');
+}
+
+function onInput() {
+  const text = document.getElementById('inputText').value;
+  const count = text.replace(/\s/g, '').length;
+  document.getElementById('charCount').textContent = count + '자 (공백 제외)';
+}
+
+function clearAll() {
+  document.getElementById('inputText').value = '';
+  document.getElementById('charCount').textContent = '0자';
+  document.getElementById('resultsSection').classList.remove('visible');
+  document.getElementById('errorMsg').classList.remove('visible');
+  document.getElementById('loadingBar').classList.remove('active');
+  lastResult = null;
+}
+
+function setLoading(loading) {
+  const btn = document.getElementById('checkBtn');
+  const bar = document.getElementById('loadingBar');
+  btn.disabled = loading;
+  if (loading) {
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="white" width="14" height="14"><path d="M12 2a10 10 0 100 20A10 10 0 0012 2zm0 18a8 8 0 110-16 8 8 0 010 16z" opacity=".3"/><path d="M12 2a10 10 0 0110 10h-2a8 8 0 00-8-8V2z"><animateTransform attributeName="transform" type="rotate" from="0 12 12" to="360 12 12" dur="0.8s" repeatCount="indefinite"/></path></svg> 검사 중...';
+    bar.classList.add('active');
+  } else {
+    btn.innerHTML = '<svg viewBox="0 0 24 24" fill="white" width="14" height="14"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"/></svg> 검사하기';
+    bar.classList.remove('active');
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  document.getElementById('errorText').textContent = msg;
+  el.classList.add('visible');
+}
+
+function hideError() {
+  document.getElementById('errorMsg').classList.remove('visible');
+}
+
+function countWithoutSpaces(text) {
+  return text.replace(/\s/g, '').length;
+}
+
+function isValidCorrection(c) {
+  return countWithoutSpaces(c.original) === countWithoutSpaces(c.corrected);
+}
+
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function buildHighlightedText(text, words, type) {
+  if (!words || words.length === 0) return escapeHtml(text);
+  let result = escapeHtml(text);
+  const targets = type === 'original'
+    ? words.map(c => escapeHtml(c.original))
+    : words.map(c => escapeHtml(c.corrected));
+
+  const unique = [...new Set(targets)];
+  unique.forEach(word => {
+    if (!word) return;
+    const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const dataAttr = type === 'corrected' ? ` data-word="${word}" onclick="lookupWord('${word}', event)"` : '';
+    result = result.replace(new RegExp(escaped, 'g'), `<mark${dataAttr}>${word}</mark>`);
+  });
+  return result;
+}
+
+function renderResults(data) {
+  const { original, corrected, corrections, skipped } = data;
+  const section = document.getElementById('resultsSection');
+  section.classList.add('visible');
+
+  hideError();
+
+  if (!corrections || corrections.length === 0) {
+    document.getElementById('noErrors').style.display = 'flex';
+    document.getElementById('compareGrid').style.display = 'none';
+    document.getElementById('correctionsCard').style.display = 'none';
+    document.getElementById('skippedNotice').classList.remove('visible');
+    return;
+  }
+
+  document.getElementById('noErrors').style.display = 'none';
+  document.getElementById('compareGrid').style.display = 'grid';
+  document.getElementById('correctionsCard').style.display = 'block';
+
+  document.getElementById('originalDisplay').innerHTML =
+    buildHighlightedText(original, corrections, 'original');
+  document.getElementById('correctedDisplay').innerHTML =
+    buildHighlightedText(corrected, corrections, 'corrected');
+
+  document.getElementById('correctionsBadge').textContent = corrections.length + '건';
+
+  const list = document.getElementById('correctionsList');
+  list.innerHTML = '';
+  corrections.forEach(c => {
+    const item = document.createElement('div');
+    item.className = 'correction-item';
+    item.innerHTML = `
+      <div class="correction-top">
+        <span class="category-badge cat-${c.category}">${c.category}</span>
+        <div class="correction-words">
+          <span class="word-original">${escapeHtml(c.original)}</span>
+          <span class="arrow-icon">→</span>
+          <span class="word-corrected" onclick="lookupWord('${escapeHtml(c.corrected)}', event)">${escapeHtml(c.corrected)}</span>
+        </div>
+      </div>
+      <div class="correction-reason">${escapeHtml(c.reason)}</div>
+    `;
+    list.appendChild(item);
+  });
+
+  if (skipped && skipped.length > 0) {
+    const notice = document.getElementById('skippedNotice');
+    document.getElementById('skippedText').textContent =
+      `검증 규칙(글자 수 불일치)으로 제외된 항목 ${skipped.length}건이 있습니다.`;
+    notice.classList.add('visible');
+  } else {
+    document.getElementById('skippedNotice').classList.remove('visible');
+  }
+}
+
+async function checkSpelling() {
+  const text = document.getElementById('inputText').value.trim();
+  if (!text) { showError('검사할 텍스트를 입력해주세요.'); return; }
+
+  hideError();
+  setLoading(true);
+  document.getElementById('resultsSection').classList.remove('visible');
+
+  const endpoint = document.getElementById('apiEndpoint').value.trim();
+
+  try {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+
+    if (!response.ok) {
+      const err = await response.text();
+      throw new Error(`서버 오류 (${response.status}): ${err}`);
+    }
+
+    const raw = await response.json();
+
+    // 글자 수 검증 (백엔드에서 이미 처리되지만 프론트엔드 방어 레이어)
+    const valid = (raw.corrections || []).filter(isValidCorrection);
+    const skipped = (raw.corrections || []).filter(c => !isValidCorrection(c));
+
+    lastResult = { ...raw, corrections: valid, skipped };
+    renderResults(lastResult);
+
+  } catch (e) {
+    // 개발/데모용: 백엔드 없을 때 Mock 응답으로 UI 확인 가능
+    if (e.message.includes('fetch') || e.message.includes('Failed') || e.message.includes('NetworkError')) {
+      useMockResponse(text);
+    } else {
+      showError(e.message);
+    }
+  } finally {
+    setLoading(false);
+  }
+}
+
+// 백엔드 없을 때 UI 테스트용 Mock
+function useMockResponse(text) {
+  const mock = {
+    original: text,
+    corrected: text
+      .replace('조습니다', '좋습니다')
+      .replace('됬', '됐')
+      .replace('안되', '안 돼'),
+    corrections: [
+      { original: '조습니다', corrected: '좋습니다', category: '맞춤법', reason: "형용사 '좋다'의 합쇼체 활용형은 '좋습니다'입니다. '조습니다'는 발음을 그대로 옮긴 잘못된 표기입니다." },
+      { original: '됬', corrected: '됐', category: '맞춤법', reason: "'되었-'의 준말은 '됐-'입니다. '됬'은 표준어가 아닙니다." }
+    ],
+    skipped: []
+  };
+
+  const actualCorrections = mock.corrections.filter(c =>
+    text.includes(c.original) && isValidCorrection(c)
+  );
+
+  const skipped = mock.corrections.filter(c =>
+    text.includes(c.original) && !isValidCorrection(c)
+  );
+
+  lastResult = {
+    original: text,
+    corrected: actualCorrections.reduce((t, c) => t.replace(c.original, c.corrected), text),
+    corrections: actualCorrections,
+    skipped
+  };
+
+  renderResults(lastResult);
+
+  const notice = document.getElementById('skippedNotice');
+  if (actualCorrections.length === 0 && !text.includes('조습니다') && !text.includes('됬')) {
+    lastResult.corrections = [];
+    renderResults(lastResult);
+  }
+
+  // 개발 모드 안내
+  const errorEl = document.getElementById('errorMsg');
+  document.getElementById('errorText').textContent =
+    '백엔드 서버에 연결할 수 없어 Mock 데이터로 UI를 표시합니다. ("오늘 날씨가 조습니다." 또는 "됬어요"를 입력해 보세요)';
+  errorEl.style.background = '#fffbeb';
+  errorEl.style.borderColor = '#fde68a';
+  errorEl.style.color = '#92400e';
+  errorEl.querySelector('svg').style.fill = '#92400e';
+  errorEl.classList.add('visible');
+}
+
+// 사전 팝업
+async function lookupWord(word, event) {
+  event && event.stopPropagation();
+
+  const popup = document.getElementById('dictPopup');
+  const content = document.getElementById('dictContent');
+  document.getElementById('dictWord').textContent = word;
+
+  popup.style.display = 'block';
+
+  const rect = event.target.getBoundingClientRect();
+  let top = rect.bottom + window.scrollY + 6;
+  let left = rect.left + window.scrollX;
+  if (left + 300 > window.innerWidth) left = window.innerWidth - 310;
+  popup.style.top = top + 'px';
+  popup.style.left = left + 'px';
+  popup.classList.add('visible');
+
+  content.innerHTML = '<div class="dict-loading">조회 중...</div>';
+
+  const endpoint = document.getElementById('dictEndpoint').value.trim();
+
+  try {
+    const response = await fetch(`${endpoint}?word=${encodeURIComponent(word)}`);
+    if (!response.ok) throw new Error('조회 실패');
+    const data = await response.json();
+    renderDictResult(data);
+  } catch (e) {
+    // Mock 사전 데이터
+    const mockDict = {
+      '좋습니다': { pos: '형용사', definitions: ['대상의 성질이나 내용이 흡족하다.', '어떤 일이나 관계가 원하는 바와 같다.'] },
+      '됐': { pos: '동사', definitions: ["'되다'의 준말. 어떤 일이 이루어지거나 끝나다."] },
+    };
+    const found = Object.entries(mockDict).find(([k]) => word.startsWith(k.slice(0, 2)));
+    if (found) {
+      renderDictResult({ word: found[0], items: [found[1]] });
+    } else {
+      content.innerHTML = '<div class="dict-error">검색 결과가 없습니다.</div>';
+    }
+  }
+}
+
+function renderDictResult(data) {
+  const content = document.getElementById('dictContent');
+  if (!data || !data.items || data.items.length === 0) {
+    content.innerHTML = '<div class="dict-error">검색 결과가 없습니다.</div>';
+    return;
+  }
+  let html = '';
+  data.items.slice(0, 3).forEach(item => {
+    if (item.pos) html += `<span class="dict-pos">${item.pos}</span>`;
+    if (item.definitions) {
+      item.definitions.slice(0, 2).forEach((def, i) => {
+        html += `<div class="dict-def">${i + 1}. ${escapeHtml(def)}</div>`;
+      });
+    }
+  });
+  content.innerHTML = html;
+}
+
+function closeDict() {
+  document.getElementById('dictPopup').classList.remove('visible');
+  setTimeout(() => document.getElementById('dictPopup').style.display = 'none', 150);
+}
+
+document.addEventListener('click', e => {
+  const popup = document.getElementById('dictPopup');
+  if (popup.classList.contains('visible') && !popup.contains(e.target)) {
+    closeDict();
+  }
+});
+
+document.getElementById('inputText').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') checkSpelling();
+});
+</script>
+</body>
+</html>

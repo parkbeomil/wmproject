@@ -1,0 +1,28 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Gradle
+.gradle/
+build/
+out/
+*.class
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local configuration (contains sensitive data)
+application-local.yml
+.env
+.env.local
+
+# Build artifacts
+*.jar
+*.war
+*.rar
+*.tar.gz
+*.zip
