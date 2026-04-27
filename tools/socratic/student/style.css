@@ -1,0 +1,112 @@
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #eff6ff, #f0fdf4);
+  padding: 24px 16px;
+  font-family: 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif;
+}
+
+.wrap { max-width: 1100px; margin: 0 auto; }
+
+/* 진행 바 */
+.progress-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.progress-bar span { font-size: 16px; color: #64748b; font-weight: bold; margin-right: 8px; }
+.dot { width: 14px; height: 14px; border-radius: 50%; background: #e2e8f0; flex-shrink: 0; }
+.dot.active { background: #3b82f6; }
+.dot.done   { background: #22c55e; }
+
+/* 레이아웃 */
+.columns { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+
+/* 문제 카드 */
+.card {
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 4px 28px rgba(0,0,0,.07);
+  padding: 36px;
+  border: 1px solid #e2e8f0;
+  flex: 1 1 420px;
+}
+.q-label  { font-size: 16px; color: #64748b; margin-bottom: 16px; font-weight: bold; }
+.q-box    { font-size: 18px; color: #1e293b; line-height: 2.2; margin-bottom: 28px; background: #f8fafc; border-radius: 16px; padding: 20px 22px; white-space: pre-wrap; }
+
+/* 답 입력 */
+.answer-label { font-size: 16px; color: #64748b; font-weight: bold; margin-bottom: 14px; }
+.answer-row   { display: flex; align-items: center; gap: 16px; background: #f8fafc; border-radius: 14px; padding: 14px 18px; margin-bottom: 10px; }
+.answer-row label { font-size: 15px; color: #475569; min-width: 140px; font-weight: 500; }
+
+.big-input {
+  width: 90px; text-align: center; font-size: 20px; font-weight: bold;
+  border: 3px solid #94a3b8; background: #fff; border-radius: 10px;
+  padding: 6px 4px; outline: none; color: #1e293b;
+}
+.big-input.correct { border-color: #22c55e; background: #f0fdf4; }
+.big-input.wrong   { border-color: #ef4444; background: #fef2f2; }
+
+.check-mark      { font-size: 24px; font-weight: bold; }
+.check-mark.ok   { color: #22c55e; }
+.check-mark.ng   { color: #ef4444; }
+
+/* 버튼 */
+.btn-submit  { width: 100%; background: #3b82f6; color: #fff; border: none; border-radius: 14px; padding: 16px 0; font-size: 20px; font-weight: bold; cursor: pointer; margin-top: 4px; }
+.btn-retry   { width: 100%; background: #f1f5f9; color: #475569; border: 2px solid #e2e8f0; border-radius: 14px; padding: 16px 0; font-size: 18px; font-weight: bold; cursor: pointer; margin-top: 4px; }
+.btn-next    { margin-top: 16px; background: #22c55e; color: #fff; border: none; border-radius: 12px; padding: 12px 32px; font-size: 17px; cursor: pointer; font-weight: bold; }
+.btn-fin     { margin-top: 16px; background: #3b82f6; color: #fff; border: none; border-radius: 12px; padding: 12px 32px; font-size: 17px; cursor: pointer; font-weight: bold; }
+
+/* 결과 */
+.result-ok  { margin-top: 20px; background: #f0fdf4; border: 2px solid #86efac; border-radius: 16px; padding: 20px; text-align: center; }
+.r-emoji    { font-size: 44px; }
+.r-msg      { font-weight: bold; color: #15803d; font-size: 22px; margin-top: 8px; }
+.result-ng  { margin-top: 20px; background: #fff7ed; border: 2px solid #fed7aa; border-radius: 16px; padding: 16px 20px; }
+.rng-t      { color: #c2410c; font-weight: bold; font-size: 18px; }
+.rng-s      { color: #ea580c; font-size: 15px; margin-top: 6px; }
+
+/* 채팅 카드 */
+.chat-card {
+  background: #fff;
+  border-radius: 24px;
+  box-shadow: 0 4px 28px rgba(0,0,0,.07);
+  border: 1px solid #e2e8f0;
+  flex: 1 1 380px;
+  display: flex;
+  flex-direction: column;
+  height: 560px;
+  position: sticky;
+  top: 24px;
+}
+.chat-header { padding: 20px 24px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+.avatar      { width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #4ade80, #22c55e); display: flex; align-items: center; justify-content: center; font-size: 24px; border: 2px solid #e2e8f0; flex-shrink: 0; }
+.avatar.sm   { width: 32px; height: 32px; font-size: 16px; }
+.chat-name   { font-weight: bold; color: #1e293b; font-size: 18px; }
+.chat-status { font-size: 13px; color: #22c55e; margin-top: 2px; }
+
+.chat-msgs   { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.msg-row     { display: flex; gap: 10px; align-items: flex-end; }
+.msg-row.user { flex-direction: row-reverse; }
+.bubble      { max-width: 80%; border-radius: 4px 18px 18px 18px; padding: 13px 18px; font-size: 17px; line-height: 1.7; background: #f1f5f9; color: #1e293b; }
+.bubble.user { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; border-radius: 18px 4px 18px 18px; }
+.bubble.loading { color: #94a3b8; }
+
+.chat-input-area { padding: 16px 20px; border-top: 1px solid #e2e8f0; display: flex; gap: 10px; flex-shrink: 0; }
+.chat-input-area input  { flex: 1; border: 2px solid #e2e8f0; border-radius: 14px; padding: 13px 18px; font-size: 17px; outline: none; font-family: inherit; }
+.chat-input-area button { background: linear-gradient(135deg, #3b82f6, #6366f1); color: #fff; border: none; border-radius: 14px; padding: 13px 20px; cursor: pointer; font-size: 22px; }
+.chat-input-area button:disabled { background: #e2e8f0; cursor: not-allowed; }
+
+.chat-solved { padding: 24px; border-top: 1px solid #e2e8f0; text-align: center; flex-shrink: 0; }
+.cs-emoji    { font-size: 40px; margin-bottom: 8px; }
+.cs-msg      { font-weight: bold; color: #15803d; font-size: 18px; margin-bottom: 16px; }
+
+/* 완료 화면 */
+.done-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+.done-card   { text-align: center; background: #fff; border-radius: 28px; padding: 60px 56px; box-shadow: 0 8px 40px rgba(0,0,0,.1); }
+.done-card .trophy { font-size: 80px; }
+.done-card h1 { color: #1e293b; font-size: 32px; margin-top: 16px; }
+.done-card p  { color: #64748b; margin-top: 10px; font-size: 17px; }
+.btn-restart  { background: #f1f5f9; color: #475569; border: 2px solid #e2e8f0; border-radius: 14px; padding: 14px 32px; font-size: 17px; cursor: pointer; margin-top: 24px; font-weight: bold; }

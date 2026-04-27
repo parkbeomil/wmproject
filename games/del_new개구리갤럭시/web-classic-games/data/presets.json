@@ -1,0 +1,47 @@
+{
+  "concepts": {
+    "divisor": {
+      "id": "divisor",
+      "name": "약수",
+      "description": "어떤 수를 나누어떨어지게 하는 수입니다.",
+      "candidates": [12, 24, 36],
+      "validation": "divisor",
+      "instructions": {
+        "airplane": "{target}의 약수가 아닌 수를 격파하세요!",
+        "frog": "{target}의 약수인 연잎만 밟으세요!"
+      },
+      "eliminateMode": {
+        "airplane": false,
+        "frog": false
+      }
+    },
+    "multiple": {
+      "id": "multiple",
+      "name": "배수",
+      "description": "어떤 수에 자연수를 곱하여 만들 수 있는 수입니다.",
+      "candidates": [3, 4, 5],
+      "validation": "multiple",
+      "instructions": {
+        "airplane": "{target}의 배수가 아닌 수를 격파하세요!",
+        "frog": "{target}의 배수인 연잎만 밟으세요!"
+      },
+      "eliminateMode": {
+        "airplane": false,
+        "frog": false
+      }
+    }
+  },
+  "gameRules": {
+    "airplane": {
+      "speedScale": [0.7, 1.0, 1.3],
+      "maxTotal": [12, 18, 24],
+      "descentRate": [10, 15, 21],
+      "numRange": [[1, 40], [1, 50], [1, 60]]
+    },
+    "frog": {
+      "rows": [5, 7, 9],
+      "numRange": [[1, 30], [2, 60], [3, 90]],
+      "speed": [45, 65, 85]
+    }
+  }
+}

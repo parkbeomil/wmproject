@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+:root {
+  --bg:#000; --wall:#162dff; --wall-glow:#315cff;
+  --yellow:#ffd928; --cyan:#55e6ff; --red:#ff3b4f; --green:#39ff14;
+  --text:#fff6b8;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html, body { width:100%; height:100%; }
+body {
+  min-height:100vh;
+  background:var(--bg);
+  color:var(--text);
+  font-family:"Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;
+  overflow:hidden;
+  display:grid; place-items:center;
+}
+.screen {
+  background:var(--bg);
+  border:2px solid var(--wall);
+  box-shadow:0 0 0 1px #07177c, 0 0 18px rgba(49,92,255,0.75);
+  overflow:hidden; position:relative;
+  width:100%; max-width:720px;
+}
+.scoreboard {
+  background:#000; border-bottom:2px solid var(--wall);
+  padding:10px 16px; display:flex;
+}
+.score-item { flex:1; text-align:center; padding:2px 4px; border-right:1px solid #162dff60; }
+.score-item:last-child { border-right:none; }
+.score-label { color:#9feaff; font-size:10px; font-weight:700; letter-spacing:1px; display:block; text-transform:uppercase; }
+.score-value { color:var(--yellow); font-size:24px; font-weight:900; font-family:'Courier New',monospace; display:block; line-height:1.1; }
+.level-value { color:#ff72c6; }
+.timer-value.urgent { color:var(--red); animation:timerBlink 0.5s ease-in-out infinite; }
+@keyframes timerBlink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+.level-status {
+  background:#000; border-bottom:2px solid var(--wall);
+  padding:7px 16px; display:flex; align-items:center; gap:10px;
+}
+.level-info { font-size:11px; font-weight:700; color:var(--cyan); white-space:nowrap; min-width:110px; font-family:'Courier New',monospace; }
+.pip-row { display:flex; gap:5px; align-items:center; }
+.pip { width:14px; height:14px; border-radius:50%; border:2px solid #162dff; background:transparent; transition:background 0.2s,border-color 0.2s; flex-shrink:0; }
+.pip.correct { background:var(--green); border-color:var(--green); box-shadow:0 0 6px var(--green); }
+.pip.wrong   { background:var(--red); border-color:var(--red); box-shadow:0 0 6px var(--red); }
+.q-counter { font-size:11px; color:var(--text); white-space:nowrap; margin-left:auto; font-family:'Courier New',monospace; }
+.question-board {
+  background:#000; border-bottom:2px solid var(--wall);
+  padding:8px 14px; text-align:center;
+}
+.question-title { color:#9feaff; font-size:10px; letter-spacing:3px; font-weight:700; text-transform:uppercase; }
+.question-text  { color:var(--yellow); font-size:22px; font-weight:900; }
+.question-text span { color:#ff9f2a; font-size:26px; text-shadow:0 0 10px #ff9f2a; }
+.game-field {
+  background:var(--bg);
+  padding:16px 14px 14px; display:grid;
+  grid-template-columns:repeat(3,1fr); gap:14px; position:relative;
+}
+.hole {
+  position:relative; height:150px;
+  display:flex; flex-direction:column; align-items:center; justify-content:flex-end;
+  cursor:pointer; user-select:none; overflow:hidden; border-radius:4px;
+}
+.hole-ground {
+  width:82%; height:28px;
+  background:radial-gradient(ellipse at center,#1a1a3a 0%,#0a0a20 100%);
+  border-radius:50%; border:2px solid #162dff;
+  position:absolute; bottom:0; box-shadow:0 0 10px #162dff88; z-index:3;
+}
+.mole-container {
+  position:absolute; bottom:14px; width:80%;
+  display:flex; flex-direction:column; align-items:center; z-index:2;
+  transition:transform 0.22s cubic-bezier(.34,1.56,.64,1);
+  transform:translateY(170px);
+}
+.mole-container.up  { transform:translateY(0); }
+.mole-container.hit { transform:translateY(0) scale(0.85) rotate(-8deg); filter:brightness(1.4) hue-rotate(30deg); }
+.mole-body { width:68px; height:68px; }
+.sign {
+  background:#0a0a1a; border:2px solid var(--wall); border-radius:4px;
+  padding:3px 10px; font-size:18px; font-weight:900; color:var(--yellow);
+  text-align:center; box-shadow:0 0 8px #162dff88, 2px 2px 0 #07177c;
+  min-width:50px; margin-bottom:1px; font-family:'Courier New',monospace;
+}
+.sign::after { content:''; display:block; width:3px; height:5px; background:#162dff; margin:1px auto 0; border-radius:2px; }
+.sign.correct-sign { border-color:var(--green); color:var(--green); box-shadow:0 0 8px var(--green); }
+.sign.wrong-sign   { border-color:var(--red); color:var(--red); box-shadow:0 0 8px var(--red); }
+.mole-feedback {
+  position:absolute; transform:translateX(-50%);
+  font-size:16px; font-weight:900; pointer-events:none; z-index:20;
+  white-space:nowrap; animation:floatUp 0.75s ease-out forwards;
+}
+.mole-feedback.correct { color:var(--green); text-shadow:0 0 8px var(--green); }
+.mole-feedback.wrong   { color:var(--red); text-shadow:0 0 8px var(--red); }
+@keyframes floatUp {
+  0%  { opacity:1; transform:translateX(-50%) translateY(0); }
+  100%{ opacity:0; transform:translateX(-50%) translateY(-44px); }
+}
+.toast {
+  position:absolute; top:50%; left:50%; z-index:300;
+  transform:translate(-50%,-50%) scale(0.5);
+  border-radius:0; padding:20px 36px; text-align:center;
+  opacity:0; pointer-events:none;
+  transition:transform 0.35s cubic-bezier(.34,1.56,.64,1),opacity 0.35s;
+  white-space:nowrap;
+  background:#000; border:2px solid var(--wall);
+  box-shadow:inset 0 0 0 1px #315cff, 0 0 24px rgba(49,92,255,0.9);
+}
+.toast.show { opacity:1; transform:translate(-50%,-50%) scale(1); }
+.toast.hide { opacity:0; transform:translate(-50%,-50%) scale(0.8); transition:transform 0.25s ease-in,opacity 0.25s; }
+.toast-label { font-size:11px; font-weight:700; color:#9feaff; letter-spacing:3px; margin-bottom:4px; text-transform:uppercase; }
+.toast-title { font-size:26px; font-weight:900; color:var(--yellow); margin-bottom:4px; text-shadow:0 0 12px var(--yellow); }
+.toast-desc  { font-size:13px; color:var(--text); }
+.overlay { display:none; position:absolute; inset:0; background:rgba(0,0,0,0.85); z-index:200; flex-direction:column; align-items:center; justify-content:center; }
+.overlay.show { display:flex; }
+.overlay-box {
+  background:#000; border:2px solid var(--wall);
+  box-shadow:inset 0 0 0 1px #67a0ff, 0 0 22px rgba(49,92,255,0.85);
+  border-radius:0; padding:28px 40px; text-align:center; width:82%;
+}
+.overlay-box h2 { font-size:26px; margin-bottom:6px; color:var(--yellow); text-shadow:0 0 10px var(--yellow); }
+.overlay-box p  { color:var(--text); font-size:15px; margin-bottom:8px; }
+.final-score { color:var(--yellow); font-size:44px; font-weight:900; text-shadow:0 0 16px var(--yellow); }
+.final-meta  { font-size:14px; color:#9feaff; margin-top:8px; }
+.game-btn { padding:10px 26px; border:0; border-radius:0; font-size:15px; font-weight:900; cursor:pointer; transition:transform .08s,box-shadow .08s; }
+.game-btn:active { transform:translateY(3px); box-shadow:0 2px 0; }
+.btn-start { background:var(--yellow); color:#100900; box-shadow:0 5px 0 #b68200; }
+.btn-stop  { background:var(--red); color:#fff; box-shadow:0 5px 0 #8a0000; }
+</style>
+</head>
+<body>
+<div class="screen" id="screen">
+      <div class="scoreboard">
+        <div class="score-item">
+          <span class="score-label">⭐ 총점</span>
+          <span class="score-value" id="total-score">0</span>
+        </div>
+        <div class="score-item">
+          <span class="score-label">🏆 레벨</span>
+          <span class="score-value level-value" id="level-display">1</span>
+        </div>
+        <div class="score-item">
+          <span class="score-label">💥 콤보</span>
+          <span class="score-value" id="combo">0</span>
+        </div>
+        <div class="score-item">
+          <span class="score-label">⏱ 시간</span>
+          <span class="score-value timer-value" id="timer">60</span>
+        </div>
+      </div>
+
+      <div class="level-status">
+        <span class="level-info" id="level-info">Lv.1 — 입문  0/5점</span>
+        <div class="pip-row" id="pip-row"></div>
+        <span class="q-counter" id="q-counter">0 / 10 문제</span>
+      </div>
+
+      <div class="question-board">
+        <div class="question-title">📺 문 제</div>
+        <div class="question-text" id="question-text"><span>게임을 시작하세요!</span></div>
+      </div>
+
+      <div class="game-field" id="game-field"></div>
+
+      <div class="toast" id="toast">
+        <div class="toast-label" id="toast-label">LEVEL UP!</div>
+        <div class="toast-title" id="toast-title">Lv.2 달성!</div>
+        <div class="toast-desc"  id="toast-desc">두더지가 빨라졌어요!</div>
+      </div>
+
+      <!-- 오버레이: 게임 시작 전에도 표시, 시작 버튼 포함 -->
+      <div class="overlay show" id="overlay">
+        <div class="overlay-box">
+          <h2 id="overlay-title" style="color:#c06090">🐾 수학 두더지</h2>
+          <p id="overlay-sub">약수와 배수를 맞혀 두더지를 잡아요!<br>10문제 안에 5점을 넘으면 다음 레벨!</p>
+          <div class="final-score" id="final-score" style="display:none">0</div>
+          <p class="final-meta" id="final-meta" style="display:none">
+            최종 <span id="final-level" style="color:#8040c0;font-weight:700">Lv.1</span> |
+            정답 <span id="final-correct" style="color:#5aba5a">0</span>개 |
+            오답 <span id="final-wrong"   style="color:#e87070">0</span>개
+          </p>
+          <button class="game-btn btn-start" style="margin-top:18px" id="overlay-btn" onclick="closeOverlay()">🎮 게임 시작</button>
+        </div>
+      </div>
+    </div>
+
+<script>
+const LEVELS = [
+  null,
+  { name:'입문',   stay:[5200,6200], intv:[5200,6800], show:[3,4] },
+  { name:'초급-',  stay:[4500,5500], intv:[4800,6200], show:[3,5] },
+  { name:'초급',   stay:[3900,4800], intv:[4200,5500], show:[4,5] },
+  { name:'초급+',  stay:[3400,4200], intv:[3800,5000], show:[4,6] },
+  { name:'중급-',  stay:[2900,3700], intv:[3400,4600], show:[5,6] },
+  { name:'중급',   stay:[2500,3200], intv:[3000,4200], show:[5,6] },
+  { name:'중급+',  stay:[2100,2700], intv:[2600,3600], show:[5,7] },
+  { name:'고급',   stay:[1700,2200], intv:[2200,3000], show:[6,7] },
+  { name:'고급+',  stay:[1300,1800], intv:[1800,2500], show:[6,8] },
+  { name:'마스터', stay:[1000,1400], intv:[1400,1900], show:[7,9] },
+];
+const LEVEL_DESCS=['','느긋하게 시작해요!','조금 빨라졌어요!','집중이 필요해요!','두더지가 빠르네요!',
+  '긴장되기 시작해요!','두더지가 빨라졌어요!','꽤 빠르죠?','눈이 바빠지네요!','최고난이도!','완벽한 마스터!'];
+const MAX_LEVEL=10, MAX_Q=10, PASS_SCORE=5;
+const A_LIST=[4,6,8,10,12,15,16,18,20,25,30,32,36,45,55];
+const B_LIST=[2,3,4,5,6,7,8,9,10,11,12,15,20];
+
+let totalScore=0,combo=0,correctCount=0,wrongCount=0;
+let timeLeft=60,timerInterval=null,moleInterval=null;
+let isRunning=false,activeMoles={};
+let currentLevel=1,levelScore=0,levelQ=0,pipHistory=[],toastTimer=null;
+let gameStarted=false; // 최초 시작 여부
+
+function renderPips(){
+  const row=document.getElementById('pip-row');
+  row.innerHTML='';
+  for(let i=0;i<MAX_Q;i++){
+    const d=document.createElement('div');
+    d.className='pip'+(i<levelQ?(pipHistory[i]==='correct'?' correct':' wrong'):'');
+    row.appendChild(d);
+  }
+}
+function resetLevelState(){ levelScore=0; levelQ=0; pipHistory=[]; renderPips(); updateLevelInfo(); }
+function updateLevelInfo(){
+  document.getElementById('level-display').textContent=currentLevel;
+  document.getElementById('level-info').textContent=`Lv.${currentLevel} — ${LEVELS[currentLevel].name}  ${Math.max(0,levelScore)}/5점`;
+  document.getElementById('q-counter').textContent=`${levelQ} / ${MAX_Q} 문제`;
+}
+function getLvParam(){
+  const lv=LEVELS[currentLevel];
+  return{
+    stay:lv.stay[0]+Math.random()*(lv.stay[1]-lv.stay[0]),
+    intv:lv.intv[0]+Math.random()*(lv.intv[1]-lv.intv[0]),
+    cnt:lv.show[0]+Math.floor(Math.random()*(lv.show[1]-lv.show[0]+1)),
+  };
+}
+
+let _ac=null;
+function ac(){if(!_ac)_ac=new(window.AudioContext||window.webkitAudioContext)();if(_ac.state==='suspended')_ac.resume();return _ac;}
+function sfxCorrect(){try{const c=ac();[[880,0,0.08],[1320,0.09,0.12]].forEach(([f,w,d])=>{const o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(0.08,c.currentTime+w);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+w+d);o.connect(g);g.connect(c.destination);o.start(c.currentTime+w);o.stop(c.currentTime+w+d+0.01)});}catch(e){}}
+function sfxWrong(){try{const c=ac();[[300,0,0.07],[220,0.08,0.1]].forEach(([f,w,d])=>{const o=c.createOscillator(),g=c.createGain();o.type='sawtooth';o.frequency.value=f;g.gain.setValueAtTime(0.06,c.currentTime+w);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+w+d);o.connect(g);g.connect(c.destination);o.start(c.currentTime+w);o.stop(c.currentTime+w+d+0.01)});}catch(e){}}
+function sfxTick(){try{const c=ac();const o=c.createOscillator(),g=c.createGain();o.type='square';o.frequency.value=600;g.gain.setValueAtTime(0.06,c.currentTime);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+0.05);o.connect(g);g.connect(c.destination);o.start(c.currentTime);o.stop(c.currentTime+0.06);}catch(e){}}
+function sfxLevelUp(){try{const c=ac();[[523,0,0.07],[659,0.09,0.07],[784,0.18,0.07],[1047,0.27,0.15]].forEach(([f,w,d])=>{const o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(0.1,c.currentTime+w);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+w+d);o.connect(g);g.connect(c.destination);o.start(c.currentTime+w);o.stop(c.currentTime+w+d+0.01)});}catch(e){}}
+function sfxGameOver(){try{const c=ac();[[400,0,0.1],[300,0.12,0.12],[200,0.26,0.2]].forEach(([f,w,d])=>{const o=c.createOscillator(),g=c.createGain();o.type='sawtooth';o.frequency.value=f;g.gain.setValueAtTime(0.07,c.currentTime+w);g.gain.exponentialRampToValueAtTime(0.001,c.currentTime+w+d);o.connect(g);g.connect(c.destination);o.start(c.currentTime+w);o.stop(c.currentTime+w+d+0.01)});}catch(e){}}
+
+function showToast(label,title,desc,duration=1800){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-label').textContent=label;
+  document.getElementById('toast-title').textContent=title;
+  document.getElementById('toast-desc').textContent=desc;
+  t.classList.remove('hide'); t.classList.add('show');
+  if(toastTimer)clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>{t.classList.add('hide');setTimeout(()=>t.classList.remove('show','hide'),300);},duration);
+}
+
+function recordAnswer(isCorrect){
+  pipHistory[levelQ]=isCorrect?'correct':'wrong';
+  levelQ++;
+  levelScore+=isCorrect?1:-1;
+  levelScore=Math.max(0,levelScore);
+  updateLevelInfo(); renderPips();
+  if(levelScore>=PASS_SCORE){
+    if(currentLevel>=MAX_LEVEL){ setTimeout(()=>endGame('clear'),400); return; }
+    currentLevel++;
+    resetLevelState();
+    showToast('LEVEL UP!',`Lv.${currentLevel} — ${LEVELS[currentLevel].name}`,LEVEL_DESCS[currentLevel]);
+    sfxLevelUp();
+    return;
+  }
+  if(levelQ>=MAX_Q){ setTimeout(()=>endGame('fail'),400); }
+}
+
+function moleSVG(){return `<svg class="mole-body" viewBox="0 0 72 72" xmlns="http://www.w3.org/2000/svg"><ellipse cx="36" cy="50" rx="22" ry="18" fill="#c8a06a"/><ellipse cx="36" cy="32" rx="18" ry="16" fill="#c8a06a"/><ellipse cx="20" cy="22" rx="7" ry="9" fill="#c8a06a"/><ellipse cx="52" cy="22" rx="7" ry="9" fill="#c8a06a"/><ellipse cx="20" cy="22" rx="4" ry="6" fill="#f5c8c8"/><ellipse cx="52" cy="22" rx="4" ry="6" fill="#f5c8c8"/><circle cx="29" cy="30" r="4" fill="#5a3a2a"/><circle cx="43" cy="30" r="4" fill="#5a3a2a"/><circle cx="30" cy="29" r="1.5" fill="#fff"/><circle cx="44" cy="29" r="1.5" fill="#fff"/><ellipse cx="36" cy="37" rx="5" ry="3.5" fill="#f0a0a0"/><path d="M30 42 Q36 46 42 42" stroke="#8a5a40" stroke-width="1.5" fill="none" stroke-linecap="round"/><ellipse cx="24" cy="65" rx="8" ry="4" fill="#b88850"/><ellipse cx="48" cy="65" rx="8" ry="4" fill="#b88850"/></svg>`;}
+
+function buildField(){
+  const f=document.getElementById('game-field'); f.innerHTML='';
+  for(let i=0;i<9;i++){
+    const h=document.createElement('div'); h.className='hole'; h.id=`hole-${i}`;
+    h.innerHTML=`<div class="mole-container" id="mole-${i}"><div class="sign" id="sign-${i}">?</div>${moleSVG()}</div><div class="hole-ground"></div>`;
+    h.addEventListener('click',()=>whack(i)); f.appendChild(h);
+  }
+}
+
+function getDivisors(n){const d=[];for(let i=1;i<=n;i++)if(n%i===0)d.push(i);return d;}
+function getMultiples(n,max=100){const m=[];for(let i=n;i<=max;i+=n)m.push(i);return m;}
+
+function generateQuestion(){
+  const type=Math.random()<0.5?'divisor':'multiple';
+  if(type==='divisor'){const a=A_LIST[Math.floor(Math.random()*A_LIST.length)];return{type,n:a,answers:getDivisors(a),text:`${a}의 약수`};}
+  const b=B_LIST[Math.floor(Math.random()*B_LIST.length)];return{type,n:b,answers:getMultiples(b,100),text:`${b}의 배수`};
+}
+
+function generateMoleNumbers(q){
+  const isAns=v=>q.answers.includes(v);
+  let allA,allW;
+  if(q.type==='divisor'){allA=getDivisors(q.n);allW=[];for(let i=1;i<=q.n+20;i++)if(!allA.includes(i))allW.push(i);}
+  else{allA=getMultiples(q.n,100);allW=[];for(let i=1;i<=100;i++)if(!allA.includes(i))allW.push(i);}
+  const trivial=q.type==='divisor'?[1,q.n]:[q.n];
+  const nonTriv=allA.filter(v=>!trivial.includes(v));
+  let pool=[...nonTriv,...allA.filter(v=>trivial.includes(v)&&Math.random()<0.2)].sort(()=>Math.random()-0.5);
+  if(!pool.length)pool=[...allA].sort(()=>Math.random()-0.5);
+  const chA=pool.slice(0,Math.min(Math.floor(Math.random()*3)+1,pool.length,3));
+  const fin=[...[...allW].sort(()=>Math.random()-0.5).slice(0,9-chA.length)];
+  chA.forEach(a=>fin.splice(Math.floor(Math.random()*5),0,a));
+  return fin.slice(0,9).map(v=>({value:v,isAnswer:isAns(v)}));
+}
+
+let currentNums=[];
+function scheduleMoles(){
+  if(!isRunning)return;
+  const q=generateQuestion();
+  document.getElementById('question-text').innerHTML=`<span>${q.text}</span>를 잡아라!`;
+  currentNums=generateMoleNumbers(q);
+  Object.keys(activeMoles).forEach(i=>hideMole(parseInt(i))); activeMoles={};
+  const{stay,intv,cnt}=getLvParam();
+  const idx=[...Array(9).keys()].sort(()=>Math.random()-0.5);
+  let delay=0;
+  idx.slice(0,cnt).forEach((hi,order)=>{
+    delay+=150+Math.random()*150;
+    const d=delay; const{value,isAnswer}=currentNums[order]||currentNums[0];
+    setTimeout(()=>{if(!isRunning)return; showMole(hi,value,isAnswer,stay);},d);
+  });
+  moleInterval=setTimeout(scheduleMoles,intv);
+}
+
+function showMole(i,value,isAnswer,stay){
+  const m=document.getElementById(`mole-${i}`),s=document.getElementById(`sign-${i}`);
+  if(!m)return;
+  s.textContent=value; s.className='sign'; m.className='mole-container up';
+  activeMoles[i]={value,isAnswer,timerId:setTimeout(()=>{if(activeMoles[i])hideMole(i);},stay)};
+}
+function hideMole(i){
+  const m=document.getElementById(`mole-${i}`); if(!m)return;
+  m.className='mole-container';
+  if(activeMoles[i]?.timerId)clearTimeout(activeMoles[i].timerId);
+  delete activeMoles[i];
+}
+
+function whack(i){
+  if(!isRunning||!activeMoles[i])return;
+  const{value,isAnswer}=activeMoles[i];
+  const m=document.getElementById(`mole-${i}`),s=document.getElementById(`sign-${i}`);
+  clearTimeout(activeMoles[i].timerId); delete activeMoles[i];
+  if(isAnswer){
+    combo++; correctCount++; totalScore++;
+    s.className='sign correct-sign'; m.className='mole-container hit up';
+    showFeedback(i,'✅ +1','correct'); sfxCorrect();
+  } else {
+    combo=0; wrongCount++; totalScore=Math.max(0,totalScore-1);
+    s.className='sign wrong-sign'; m.className='mole-container hit up';
+    showFeedback(i,'❌ -1','wrong'); sfxWrong();
+  }
+  setTimeout(()=>hideMole(i),400);
+  document.getElementById('total-score').textContent=totalScore;
+  document.getElementById('combo').textContent=combo;
+  recordAnswer(isAnswer);
+}
+
+function showFeedback(idx,text,type){
+  const field=document.getElementById('game-field'),hole=document.getElementById(`hole-${idx}`);
+  if(!field||!hole)return;
+  const fr=field.getBoundingClientRect(),hr=hole.getBoundingClientRect();
+  const fb=document.createElement('div');
+  fb.className=`mole-feedback ${type}`; fb.textContent=text;
+  fb.style.left=(hr.left-fr.left+hr.width/2)+'px';
+  fb.style.top=(hr.top-fr.top+hr.height*0.25)+'px';
+  field.appendChild(fb); setTimeout(()=>fb.remove(),750);
+}
+
+function startGame(){
+  totalScore=0; combo=0; correctCount=0; wrongCount=0;
+  timeLeft=60; currentLevel=1; isRunning=true;
+  resetLevelState();
+  document.getElementById('total-score').textContent=0;
+  document.getElementById('combo').textContent=0;
+  document.getElementById('timer').textContent=timeLeft;
+  document.getElementById('timer').classList.remove('urgent');
+  buildField(); scheduleMoles();
+  timerInterval=setInterval(()=>{
+    timeLeft--;
+    const t=document.getElementById('timer');
+    t.textContent=timeLeft;
+    if(timeLeft<=10&&timeLeft>0){t.classList.add('urgent');sfxTick();}
+    if(timeLeft<=0)endGame('time');
+  },1000);
+}
+
+function stopGame(){ endGame('stop'); }
+
+function endGame(reason='stop'){
+  if(!isRunning)return;
+  isRunning=false;
+  clearInterval(timerInterval); clearTimeout(moleInterval);
+  if(toastTimer)clearTimeout(toastTimer);
+  document.getElementById('toast').classList.remove('show','hide');
+  Object.keys(activeMoles).forEach(i=>hideMole(parseInt(i))); activeMoles={};
+  document.getElementById('timer').classList.remove('urgent');
+
+  const titleEl=document.getElementById('overlay-title');
+  const subEl=document.getElementById('overlay-sub');
+  if(reason==='fail'){
+    titleEl.textContent='💀 게임 오버!'; titleEl.style.color='#c03030';
+    subEl.textContent=`Lv.${currentLevel}에서 10문제 안에 통과하지 못했어요.`;
+    sfxGameOver();
+  } else if(reason==='clear'){
+    titleEl.textContent='🏆 마스터 클리어!'; titleEl.style.color='#8040c0';
+    subEl.textContent='모든 레벨을 클리어했어요!'; sfxLevelUp();
+  } else {
+    titleEl.textContent='🏁 게임 종료!'; titleEl.style.color='#c06090';
+    subEl.textContent='수고했어요!';
+  }
+
+  // 결과 표시
+  document.getElementById('final-score').style.display='block';
+  document.getElementById('final-meta').style.display='block';
+  document.getElementById('final-score').textContent=totalScore;
+  document.getElementById('final-level').textContent=`Lv.${currentLevel} ${LEVELS[currentLevel].name}`;
+  document.getElementById('final-correct').textContent=correctCount;
+  document.getElementById('final-wrong').textContent=wrongCount;
+  document.getElementById('overlay-btn').textContent='🔄 다시 하기';
+  document.getElementById('overlay').classList.add('show');
+}
+
+function closeOverlay(){
+  document.getElementById('overlay').classList.remove('show');
+  // 시작 전 초기 상태였으면 최초 시작, 아니면 재시작
+  startGame();
+}
+
+buildField();
+</script>
+</body>
+</html>

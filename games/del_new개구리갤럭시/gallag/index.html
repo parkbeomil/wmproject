@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>수학 갤러그</title>
+    <link rel="stylesheet" href="./style.css">
+  </head>
+  <body>
+    <main>
+      <header class="toolbar">
+        <div>
+          <strong>수학 갤러그</strong>
+          <span id="status">프리셋 로딩 중</span>
+        </div>
+        <nav>
+          <button id="divisorBtn" class="active" type="button">약수</button>
+          <button id="multipleBtn" type="button">배수</button>
+          <button id="startBtn" class="primary" type="button">시작</button>
+        </nav>
+      </header>
+      <canvas id="game" width="800" height="600"></canvas>
+    </main>
+    <script src="./game.js"></script>
+  </body>
+</html>

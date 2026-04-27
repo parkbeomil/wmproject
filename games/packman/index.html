@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>숫자 먹기 미로</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="game-frame" aria-label="숫자 학습 미로 게임">
+        <header class="scorebar">
+          <div class="goal-display" id="missionText">미션 : 00의 배수 및 약수를 찾아보아요.</div>
+          <div class="score-display" id="score">점수 : 00</div>
+        </header>
+
+        <div class="board-wrap">
+          <canvas id="game" width="900" height="572" aria-label="게임판"></canvas>
+
+          <div class="overlay" id="startOverlay">
+            <div class="panel">
+              <p class="kicker">숫자 먹기 미로</p>
+              <h1>약수와 배수를 찾아 먹어요</h1>
+              <label for="numberInput">기준 숫자</label>
+              <div class="start-row">
+                <input id="numberInput" type="number" min="1" max="100" value="12" />
+                <button id="startButton" type="button">시작</button>
+              </div>
+              <label for="modeSelect">학습 유형</label>
+              <select id="modeSelect">
+                <option value="1">약수 (1이 약수인지, 2가 약수인지 등)</option>
+                <option value="2">배수 (12가 배수인지, 24가 배수인지 등)</option>
+              </select>
+              <p class="hint">방향키로 움직이고, 기준 숫자의 약수나 배수만 먹으면 됩니다.</p>
+            </div>
+          </div>
+
+          <div class="overlay hidden" id="messageOverlay">
+            <div class="panel compact">
+              <h2 id="messageTitle">레벨 완료</h2>
+              <p id="messageText">다음 레벨로 갑니다.</p>
+              <button id="messageButton" type="button">계속</button>
+            </div>
+          </div>
+        </div>
+
+        <footer class="helpbar">
+          <div class="life-row" id="lives" aria-label="남은 생명"></div>
+          <div class="status-row">
+            <span>레벨 <b id="level">1</b></span>
+            <span>목표 <b id="footerProgress">0/5</b></span>
+            <span>한 칸 이동: 방향키 · 멈춤: Space</span>
+          </div>
+        </footer>
+      </section>
+    </main>
+
+    <script src="game.js"></script>
+  </body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "concepts": {
+    "divisor": {
+      "id": "divisor",
+      "name": "약수",
+      "description": "어떤 수를 나누어떨어지게 하는 수입니다.",
+      "candidates": [12, 24, 36],
+      "validation": "divisor",
+      "instruction": "{target}의 약수인 연잎만 밟으세요!"
+    },
+    "multiple": {
+      "id": "multiple",
+      "name": "배수",
+      "description": "어떤 수에 자연수를 곱하여 만들 수 있는 수입니다.",
+      "candidates": [3, 4, 5],
+      "validation": "multiple",
+      "instruction": "{target}의 배수인 연잎만 밟으세요!"
+    }
+  },
+  "rules": {
+    "rows": [5, 7, 9],
+    "numRange": [[1, 30], [2, 60], [3, 90]],
+    "speed": [45, 65, 85]
+  }
+}

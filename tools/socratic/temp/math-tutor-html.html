@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>수학 문제지 튜터</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;background:linear-gradient(135deg,#eff6ff,#f0fdf4);min-height:100vh}
+input,textarea,button{font-family:inherit}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:#f1f5f9}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:3px}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useRef,useEffect}=React;
+
+const CLAUDE_MODEL="claude-haiku-4-5-20251001"; //"claude-sonnet-4-20250514";
+
+const PARSE_SYSTEM=[
+  "너는 수학 문제지 파싱 전문가야.",
+  "PDF에서 빈칸 채우기 문제를 추출해 JSON 배열만 반환해. 마크다운 코드블록 없이 순수 JSON만.",
+  '형식: [{"id":1,"question":"문제 텍스트, 빈칸은 ___ 로","blanks":[{"id":"b1","label":"빈칸 설명","answer":"정답"}],"hint":"힌트"}]',
+  "규칙: 빈칸 없는 문제 제외. 빈칸 개수만큼 blanks 추가. answer는 문자열. 최대 10개. JSON 외 텍스트 출력 금지."
+].join("\n");
+
+const TUTOR_SYSTEM_back=[
+  "너는 초등학교 3~6학년 학생을 가르치는 친근한 소크라테스식 수학 선생님이야.",
+  "이름은 ** AI수학쌤 ** 이고, 학생이 문제를 풀 때 힌트를 주면서 스스로 답을 찾도록 도와줘.",
+  "말투는 편하고 따뜻하게. 마치 옆에서 같이 공부하는 친구 같은 느낌으로.",
+  "말투 규칙: 존댓말 금지. 반말로 친구처럼. 어려운 단어 금지. 딱딱한 질문 금지. 이모지 가끔. 두 문장 이내.",
+  "절대 금지: 정답이나 정답과 유사한 단어/숫자를 직접 말하지 마. 개념을 직접 설명하지 마. 질문 두 개 이상 금지.",
+  "대화 방식: 학생이 정답을 말하면 바로 칭찬하고 [STATUS:SOLVED] 반환. 아직 못 찾으면 자연스럽게 다음 질문 하나. [STATUS:ONGOING] 반환.",
+  "응답 마지막 줄에 반드시: [STATUS:ONGOING] 또는 [STATUS:SOLVED]"
+].join("\n");
+
+const TUTOR_SYSTEM=`
+너는 초등학교 3~6학년 학생을 가르치는 친근한 소크라테스식 수학 선생님이야.
+이름은 ** AI수학쌤 ** 이고, 학생이 문제를 풀 때 힌트를 주면서 스스로 답을 찾도록 도와줘.
+
+
+# 첫 대화시작 규칙
+- 시작되면 인사겸 같이풀어볼까? 정도의 가벼운멘트로 대화를 시작하도록 유도.
+- 학생이 이름이나 별명을 입력하면 그때부터는 "친구" 대신 학생 이름 또는 별명을 불러서 대답해줘.
+
+══════════════════════════════════
+[1. 소크라테스 교육 규칙]
+══════════════════════════════════
+- 절대로 정답을 바로 알려주지 마세요.
+- 매 답변은 반드시 생각을 유도하는 질문 1~2개로 끝내세요.
+- 힌트는 아주 조금씩, 단계적으로만 주세요.
+- 학생이 맞는 방향으로 가면 "오! 좋은 생각이야~", "맞아, 거의 다 왔어!" 같이 격려하세요. 상태값으로 줄의 마지막에 [STATUS:ONGOING] 반환.
+- 학생이 완전히 정답을 말하면 그때 "정답이야! 🎉" 하고 확인 후 간단히 보충 설명해주세요. 상태값으로 줄의 마지막에 [STATUS:SOLVED]을 반환.
+- 응답 마지막 줄에 반드시: [STATUS:ONGOING] 또는 [STATUS:SOLVED]
+- "그냥 정답 알려줘", "빨리 알려줘" 라고 해도 절대 정답을 말하지 말고 "선생님도 규칙이 있어서~ 같이 생각해보자!" 로 부드럽게 유도하세요.
+
+══════════════════════════════════
+[2. 주제 이탈 방지 규칙]
+══════════════════════════════════
+- 오직 초등학교 수학 관련 질문에만 답하세요. 
+- 현재 풀고있는 문제와 다른 질문은 "지금 하고있는것 먼저 해보자 😊" 로 리다이렉트하세요.
+- 수학 외 다른 과목 질문도 동일하게 리다이렉트하세요.
+- 학습과 무관한 주제는 "선생님은 수학만 알아요~😅 수학문제만 얘기해 보자!" 로 응답하세요.
+
+══════════════════════════════════
+[3. 언어 및 안전 규칙]
+══════════════════════════════════
+- 학생이 욕설, 비속어, 혐오 표현을 사용하면 해당 단어를 절대 반복하거나 따라 쓰지 말고, "앗, 그런 말은 쓰지 말자! 다시 질문해줄래? 😊" 로만 응답하세요.
+- 폭력, 자해, 위험한 행동, 범죄와 관련된 내용은 일절 응답하지 마세요.
+- 학생의 이름, 학교, 전화번호, 주소 등 개인정보를 묻거나 요청하지 마세요.
+- 학생이 개인정보를 말하면 "개인 정보는 여기서 말하지 않아도 돼! 수학 얘기만 하자 😊" 로 응답하세요.
+- 성인 콘텐츠, 정치, 종교 관련 주제는 일절 언급하지 마세요.
+
+══════════════════════════════════
+[4. 감정 보호 규칙]
+══════════════════════════════════
+- "나 멍청해", "나는 못해", "포기할래" 같은 자책 표현이 나오면 먼저 충분히 격려한 뒤 힌트를 주세요.
+  예: "아니야, 전혀! 틀려도 괜찮아, 틀리면서 배우는 거야 😊 다시 한번 해볼까?"
+- 학생이 좌절하거나 반복적으로 틀리면 힌트를 조금 더 구체적으로 줘서 성공 경험을 만들어주세요.
+- 칭찬은 구체적으로: "잘했어!" 보다 "핵심을 정확하게 찾았네, 대단한데?" 처럼 말해주세요.
+
+══════════════════════════════════
+[5. 말투 규칙]
+══════════════════════════════════
+- 초등학생에게 말하듯 쉽고 친근하게
+- 문장은 짧게, 이모지 가끔 사용
+- "~야", "~해봐", "~어떨까?" 같은 친근한 말투
+- 어려운 수학 용어는 쉬운 말로 먼저 설명 후 용어 소개
+`;
+
+async function callClaude(apiKey,system,messages,maxTokens){
+  const res=await fetch("https://api.anthropic.com/v1/messages",{
+    method:"POST",
+    headers:{"Content-Type":"application/json","x-api-key":apiKey,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+    body:JSON.stringify({model:CLAUDE_MODEL,max_tokens:maxTokens||1000,system,messages})
+  });
+  if(!res.ok){const e=await res.json();throw new Error(e.error?.message||"API 오류");}
+  const data=await res.json();
+  const block=data.content&&data.content.find(b=>b.type==="text");
+  return block?block.text:"";
+}
+
+function readFileAsBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>res(r.result.split(",")[1]);
+    r.onerror=rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function parseReply(raw){
+  const solved=raw.indexOf("[STATUS:SOLVED]")!==-1;
+  const text=raw.replace(/\[STATUS:(ONGOING|SOLVED)\]/g,"").trim();
+  return{text,solved};
+}
+
+function App(){
+  const [apiKey,setApiKey]=useState(()=>localStorage.getItem("anthropic_api_key")||"");
+  const [apiKeySaved,setApiKeySaved]=useState(()=>!!localStorage.getItem("anthropic_api_key"));
+  const [phase,setPhase]=useState("upload");
+  const [problems,setProblems]=useState([]);
+  const [current,setCurrent]=useState(0);
+  const [inputs,setInputs]=useState({});
+  const [submitted,setSubmitted]=useState(false);
+  const [wrongBlanks,setWrongBlanks]=useState([]);
+  const [allCorrect,setAllCorrect]=useState(false);
+  const [chatMsgs,setChatMsgs]=useState([]);
+  const [chatOpen,setChatOpen]=useState(false);
+  const [chatSolved,setChatSolved]=useState(false);
+  const [userMsg,setUserMsg]=useState("");
+  const [aiLoading,setAiLoading]=useState(false);
+  const [parseError,setParseError]=useState("");
+  const [showAnswers,setShowAnswers]=useState(false);
+  const chatEndRef=useRef(null);
+
+  useEffect(()=>{if(chatEndRef.current)chatEndRef.current.scrollIntoView({behavior:"smooth"});},[chatMsgs]);
+
+  function saveApiKey(){
+    localStorage.setItem("anthropic_api_key",apiKey);
+    setApiKeySaved(true);
+  }
+  function clearApiKey(){
+    localStorage.removeItem("anthropic_api_key");
+    setApiKey("");
+    setApiKeySaved(false);
+  }
+
+  function resetState(){
+    setInputs({});setSubmitted(false);setWrongBlanks([]);
+    setChatMsgs([]);setChatOpen(false);setAllCorrect(false);setChatSolved(false);
+  }
+
+  async function handleFile(file){
+    if(!file)return;
+    if(!apiKeySaved){setParseError("먼저 API 키를 저장해주세요.");return;}
+    setPhase("parsing");setParseError("");
+    try{
+      const b64=await readFileAsBase64(file);
+      const text=await callClaude(apiKey,PARSE_SYSTEM,[{
+        role:"user",
+        content:[
+          {type:"document",source:{type:"base64",media_type:"application/pdf",data:b64}},
+          {type:"text",text:"이 PDF에서 빈칸 채우기 문제들을 파싱해줘. 순수 JSON 배열만 반환해. 마크다운 없이."}
+        ]
+      }],4000);
+      const start=text.indexOf("["),end=text.lastIndexOf("]");
+      if(start===-1||end===-1)throw new Error("JSON을 찾지 못했어요.");
+      const parsed=JSON.parse(text.slice(start,end+1));
+      if(!Array.isArray(parsed)||parsed.length===0)throw new Error("빈칸 채우기 문제를 찾지 못했어요.");
+      setProblems(parsed);setPhase("review");
+    }catch(e){
+      setParseError("학습지확인 실패: "+(e.message||"다시 시도해주세요."));setPhase("upload");
+    }
+  }
+
+  function updateBlank(pi,bi,field,val){
+    setProblems(prev=>prev.map((p,i)=>i!==pi?p:{...p,blanks:p.blanks.map((b,j)=>j!==bi?b:{...b,[field]:val})}));
+  }
+  function updateQuestion(pi,val){
+    setProblems(prev=>prev.map((p,i)=>i!==pi?p:{...p,question:val}));
+  }
+  function addBlank(pi){
+    setProblems(prev=>prev.map((p,i)=>i!==pi?p:{...p,blanks:[...p.blanks,{id:"b"+Date.now(),label:"새 빈칸",answer:""}]}));
+  }
+  function removeBlank(pi,bi){
+    setProblems(prev=>prev.map((p,i)=>i!==pi?p:{...p,blanks:p.blanks.filter((_,j)=>j!==bi)}));
+  }
+
+  function startSolve(){setCurrent(0);resetState();setPhase("solve");}
+  function nextProblem(){setCurrent(c=>c+1);resetState();}
+
+  const prob=problems[current]||null;
+
+  async function handleSubmit(){
+    if(!prob)return;
+    const wrong=prob.blanks.filter(b=>(inputs[b.id]||"").trim()!==String(b.answer).trim());
+    setWrongBlanks(wrong);setSubmitted(true);
+    if(wrong.length===0){setAllCorrect(true);}
+    else{
+      setChatOpen(true);
+      const wrongLabels=wrong.map(b=>`"${b.label}": 학생이 "${inputs[b.id]||"빈칸"}"라고 답함 (정답: "${b.answer}")`).join(", ");
+      const initPrompt=`문제: "${prob.question}"\n틀린 빈칸: ${wrongLabels}\n\n정답은 절대 직접 말하지 마. 학생 생각을 가볍게 물어봐. 두 문장 이내로.`;
+      setAiLoading(true);
+      try{
+        const raw=await callClaude(apiKey,TUTOR_SYSTEM,[{role:"user",content:initPrompt}]);
+        const result=parseReply(raw);
+        setChatMsgs([{role:"assistant",content:result.text}]);
+      }catch(e){
+        setChatMsgs([{role:"assistant",content:"앗, 연결이 안 됐어. 다시 눌러볼래?"}]);
+      }
+      setAiLoading(false);
+    }
+  }
+
+  async function handleSend(){
+    if(!userMsg.trim()||aiLoading)return;
+    const newMsgs=[...chatMsgs,{role:"user",content:userMsg.trim()}];
+    setChatMsgs(newMsgs);setUserMsg("");setAiLoading(true);
+    try{
+      const wrongLabels=wrongBlanks.map(b=>`"${b.label}": 정답: "${b.answer}"`).join(", ");
+      const ctx=TUTOR_SYSTEM+`\n\n[현재 문제]\n문제: "${prob.question}"\n틀린 빈칸: ${wrongLabels}\n정답은 절대 직접 말하지 마.`;
+      const raw=await callClaude(apiKey,ctx,newMsgs);
+      const result=parseReply(raw);
+      setChatMsgs(m=>[...m,{role:"assistant",content:result.text}]);
+      if(result.solved)setChatSolved(true);
+    }catch(e){
+      setChatMsgs(m=>[...m,{role:"assistant",content:"앗, 연결 오류야 😢"}]);
+    }
+    setAiLoading(false);
+  }
+
+  function blankStyle(id){
+    const isWrong=submitted&&wrongBlanks.some(b=>b.id===id);
+    return{width:72,textAlign:"center",fontSize:20,fontWeight:"bold",
+      border:"3px solid",borderColor:!submitted?"#94a3b8":isWrong?"#ef4444":"#22c55e",
+      background:!submitted?"#fff":isWrong?"#fef2f2":"#f0fdf4",
+      borderRadius:10,padding:"6px 4px",outline:"none",color:"#1e293b"};
+  }
+
+  // ── API KEY 설정 배너 ──
+  const ApiKeyBanner=()=>(
+    <div style={{background:"#fff",borderBottom:"1px solid #e2e8f0",padding:"12px 24px",display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+      <span style={{fontSize:15,color:"#475569",fontWeight:"bold",whiteSpace:"nowrap"}}>🔑 API 키</span>
+      {apiKeySaved
+        ?<>
+          <span style={{fontSize:14,color:"#22c55e",fontWeight:"bold"}}>저장됨 ✓</span>
+          <button onClick={clearApiKey} style={{background:"none",border:"1px solid #e2e8f0",borderRadius:8,padding:"4px 12px",fontSize:13,color:"#94a3b8",cursor:"pointer"}}>변경</button>
+        </>
+        :<>
+          <input type="password" value={apiKey} onChange={e=>setApiKey(e.target.value)}
+            placeholder="sk-ant-..." style={{flex:"1 1 260px",maxWidth:360,border:"1px solid #e2e8f0",borderRadius:8,padding:"6px 12px",fontSize:14}}/>
+          <button onClick={saveApiKey} disabled={!apiKey.startsWith("sk-")}
+            style={{background:apiKey.startsWith("sk-")?"#3b82f6":"#e2e8f0",color:apiKey.startsWith("sk-")?"#fff":"#94a3b8",border:"none",borderRadius:8,padding:"6px 18px",fontSize:14,cursor:"pointer",fontWeight:"bold"}}>
+            저장
+          </button>
+          <span style={{fontSize:12,color:"#94a3b8"}}>키는 브라우저 localStorage에만 저장됩니다</span>
+        </>
+      }
+    </div>
+  );
+
+  // ── UPLOAD ──
+  if(phase==="upload")return(
+    <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
+      <ApiKeyBanner/>
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center",padding:32}}>
+        <div style={{background:"#fff",borderRadius:28,boxShadow:"0 8px 40px #0002",padding:"52px 48px",maxWidth:560,width:"100%",textAlign:"center"}}>
+          <div style={{fontSize:72}}>📄</div>
+          <h1 style={{margin:"16px 0 8px",color:"#1e293b",fontSize:32}}>수학 문제지 업로드</h1>
+          <p style={{color:"#64748b",marginBottom:36,fontSize:18}}>PDF를 올리면 AI가 빈칸 문제를 생성해요</p>
+          <label style={{display:"block",border:"3px dashed #93c5fd",borderRadius:20,padding:"48px 24px",cursor:"pointer",background:"#f8fafc"}}
+            onDragOver={e=>e.preventDefault()}
+            onDrop={e=>{e.preventDefault();handleFile(e.dataTransfer.files[0]);}}>
+            <input type="file" accept="application/pdf" style={{display:"none"}} onChange={e=>handleFile(e.target.files[0])}/>
+            <div style={{fontSize:48}}>📤</div>
+            <div style={{color:"#3b82f6",fontWeight:"bold",marginTop:12,fontSize:20}}>클릭하거나 파일을 드래그하세요</div>
+            <div style={{color:"#94a3b8",fontSize:15,marginTop:6}}>PDF 파일만 지원</div>
+          </label>
+          {parseError&&<div style={{marginTop:20,color:"#ef4444",fontSize:16}}>⚠️ {parseError}</div>}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── PARSING ──
+  if(phase==="parsing")return(
+    <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
+      <ApiKeyBanner/>
+      <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
+        <div style={{textAlign:"center"}}>
+          <div style={{fontSize:80,display:"inline-block",animation:"spin 1.2s linear infinite"}}>⚙️</div>
+          <div style={{marginTop:24,fontSize:24,fontWeight:"bold",color:"#3b82f6"}}>AI가 학습지를 확인하고 있어요!</div>
+          <div style={{color:"#64748b",marginTop:10,fontSize:17}}>잠깐만 기다려주세요 😊</div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── REVIEW ──
+  if(phase==="review")return(
+    <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
+      <ApiKeyBanner/>
+      <div style={{flex:1,padding:"32px 24px"}}>
+        <div style={{maxWidth:800,margin:"0 auto"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:28,flexWrap:"wrap",gap:12}}>
+            <div>
+              <h1 style={{margin:0,color:"#1e293b",fontSize:28}}>📋 이제 풀어볼까요? (1~10번) </h1>
+              <p style={{color:"#64748b",margin:"6px 0 0",fontSize:15}}>총 {problems.length}개 문제 · 정답 확인 후 시작하세요</p>
+            </div>
+            <div style={{display:"flex",gap:12}}>
+              <button onClick={()=>setShowAnswers(s=>!s)}
+                style={{display:none, padding:"10px 18px",borderRadius:12,border:"2px solid #f59e0b",background:showAnswers?"#fef3c7":"#fff",color:"#b45309",cursor:"pointer",fontWeight:"bold",fontSize:15}}>
+                {showAnswers?"🔒 정답 숨기기":"🔑 정답 보기"}
+              </button>
+              <button onClick={startSolve}
+                style={{padding:"10px 24px",borderRadius:12,border:"none",background:"#22c55e",color:"#fff",cursor:"pointer",fontWeight:"bold",fontSize:17}}>
+                풀기 시작 →
+              </button>
+            </div>
+          </div>
+          {problems.map((p,pi)=>(
+            <div key={p.id} style={{background:"#fff",borderRadius:20,boxShadow:"0 2px 16px #0001",padding:28,marginBottom:20}}>
+              <div style={{fontSize:15,color:"#64748b",marginBottom:8,fontWeight:"bold"}}>문제 {pi+1}</div>
+              <div style={{fontSize:18,color:"#1e293b",lineHeight:1.9,marginBottom:16}}>{p.question}</div>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {p.blanks.map((b,bi)=>(
+                  <div key={b.id} style={{display:"flex",alignItems:"center",gap:12,flexWrap:"wrap"}}>
+                    <div style={{background:"#f8fafc",borderRadius:10,padding:"8px 16px",fontSize:15,color:"#475569",minWidth:140}}>
+                      <b>{b.label||("빈칸 "+(bi+1))}</b>
+                      {showAnswers&&<span style={{marginLeft:10,color:"#16a34a",fontWeight:"bold"}}>→ {b.answer}</span>}
+                    </div>
+                    <input value={b.answer} onChange={e=>updateBlank(pi,bi,"answer",e.target.value)} placeholder="정답 입력"
+                      style={{width:100,border:"2px solid #e2e8f0",borderRadius:10,padding:"6px 10px",fontSize:16,textAlign:"center",color:"#1e293b"}}/>
+                    <button onClick={()=>removeBlank(pi,bi)}
+                      style={{background:"none",border:"none",color:"#94a3b8",cursor:"pointer",fontSize:20}}>✕</button>
+                  </div>
+                ))}
+                <button onClick={()=>addBlank(pi)}
+                  style={{alignSelf:"flex-start",background:"#f0fdf4",border:"2px dashed #86efac",borderRadius:10,padding:"6px 18px",color:"#16a34a",cursor:"pointer",fontSize:15,marginTop:4}}>
+                  + 빈칸 추가
+                </button>
+              </div>
+              <details style={{marginTop:14}}>
+                <summary style={{fontSize:14,color:"#94a3b8",cursor:"pointer"}}>문제 텍스트 수정</summary>
+                <textarea value={p.question} onChange={e=>updateQuestion(pi,e.target.value)}
+                  style={{width:"100%",marginTop:10,borderRadius:10,border:"2px solid #e2e8f0",padding:"10px",fontSize:16,resize:"vertical"}} rows={3}/>
+              </details>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // ── SOLVE ──
+  if(phase==="solve"){
+    if(current>=problems.length)return(
+      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
+        <ApiKeyBanner/>
+        <div style={{flex:1,display:"flex",alignItems:"center",justifyContent:"center"}}>
+          <div style={{textAlign:"center",background:"#fff",borderRadius:28,padding:"60px 56px",boxShadow:"0 8px 40px #0002"}}>
+            <div style={{fontSize:80}}>🏆</div>
+            <h1 style={{color:"#1e293b",fontSize:32,marginTop:16}}>모든 문제 완료!</h1>
+            <div style={{display:"flex",gap:14,justifyContent:"center",marginTop:24}}>
+              <button onClick={()=>{setPhase("upload");setProblems([]);}}
+                style={{background:"#3b82f6",color:"#fff",border:"none",borderRadius:14,padding:"14px 32px",fontSize:17,cursor:"pointer"}}>
+                새 문제지 올리기
+              </button>
+              <button onClick={()=>{setCurrent(0);resetState();}}
+                style={{background:"#f1f5f9",color:"#475569",border:"2px solid #e2e8f0",borderRadius:14,padding:"14px 32px",fontSize:17,cursor:"pointer"}}>
+                다시 풀기
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+
+    const segs=prob.question.split("___");
+    return(
+      <div style={{minHeight:"100vh",display:"flex",flexDirection:"column"}}>
+        <ApiKeyBanner/>
+        <div style={{flex:1,padding:"24px 16px"}}>
+          <div style={{maxWidth:1100,margin:"0 auto"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+              <button onClick={()=>setPhase("review")}
+                style={{background:"#f1f5f9",border:"none",borderRadius:12,padding:"10px 20px",cursor:"pointer",color:"#475569",fontSize:15,fontWeight:"bold"}}>
+                ← 문제 목록으로
+              </button>
+              <div style={{display:"flex",gap:8,alignItems:"center"}}>
+                <span style={{fontSize:16,color:"#64748b",marginRight:8,fontWeight:"bold"}}>{current+1}번 / 총 {problems.length}문제</span>
+                {problems.map((_,i)=>(
+                  <div key={i} style={{width:14,height:14,borderRadius:"50%",background:i===current?"#3b82f6":i<current?"#22c55e":"#e2e8f0"}}/>
+                ))}
+              </div>
+            </div>
+
+            <div style={{display:"flex",gap:20,alignItems:"stretch",flexWrap:"wrap"}}>
+              {/* 문제 카드 */}
+              <div style={{flex:"1 1 420px",background:"#fff",borderRadius:24,boxShadow:"0 4px 28px #0001",padding:36,border:"1px solid #e2e8f0"}}>
+                <div style={{fontSize:26,color:"#64748b",marginBottom:16,fontWeight:"bold",letterSpacing:1}}>✏️ {current+1}번</div>
+                <div style={{fontSize:22,color:"#1e293b",lineHeight:2.2,marginBottom:28,background:"#f8fafc",borderRadius:16,padding:"20px 22px"}}>
+                  {segs.length>1
+                    ?segs.map((seg,i)=>(
+                      <span key={i}>
+                        {seg}
+                        {i<segs.length-1&&prob.blanks[i]&&(
+                          <input style={blankStyle(prob.blanks[i].id)}
+                            value={inputs[prob.blanks[i].id]||""}
+                            onChange={e=>{if(!submitted){const id=prob.blanks[i].id;const val=e.target.value;setInputs(p=>({...p,[id]:val}));}}}
+                            disabled={submitted} placeholder="?" maxLength={10}/>
+                        )}
+                      </span>
+                    ))
+                    :prob.question}
+                </div>
+
+                <div style={{marginBottom:28}}>
+                  <div style={{fontSize:22,color:"#64748b",fontWeight:"bold",marginBottom:14}}>👇 여기에 답을 써주세요!</div>
+                  <div style={{display:"flex",flexDirection:"column",gap:12}}>
+                    {prob.blanks.map((b,bi)=>(
+                      <div key={b.id} style={{display:"flex",alignItems:"center",gap:16,background:"#f8fafc",borderRadius:14,padding:"14px 18px"}}>
+                        <span style={{fontSize:17,color:"#475569",minWidth:140,fontWeight:"500"}}>{b.label||("빈칸 "+(bi+1))}</span>
+                        <input style={{...blankStyle(b.id),width:90,fontSize:22}}
+                          value={inputs[b.id]||""}
+                          onChange={e=>{if(!submitted){const id=b.id;const val=e.target.value;setInputs(p=>({...p,[id]:val}));}}}
+                          disabled={submitted} placeholder="?" maxLength={10}/>
+                        {submitted&&!wrongBlanks.some(w=>w.id===b.id)&&<span style={{color:"#22c55e",fontSize:26,fontWeight:"bold"}}>✓</span>}
+                        {submitted&&wrongBlanks.some(w=>w.id===b.id)&&<span style={{color:"#ef4444",fontSize:26,fontWeight:"bold"}}>✗</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div style={{display:"flex",gap:12}}>
+                  {!submitted
+                    ?<button onClick={handleSubmit} style={{flex:1,background:"#3b82f6",color:"#fff",border:"none",borderRadius:14,padding:"16px 0",fontSize:20,fontWeight:"bold",cursor:"pointer"}}>제출하기 ✅</button>
+                    :<button onClick={resetState} style={{flex:1,background:"#f1f5f9",color:"#475569",border:"2px solid #e2e8f0",borderRadius:14,padding:"16px 0",fontSize:18,cursor:"pointer",fontWeight:"bold"}}>다시 풀기 🔄</button>
+                  }
+                </div>
+
+                {submitted&&allCorrect&&(
+                  <div style={{marginTop:20,background:"#f0fdf4",border:"2px solid #86efac",borderRadius:16,padding:"20px",textAlign:"center"}}>
+                    <div style={{fontSize:44}}>🎉</div>
+                    <div style={{fontWeight:"bold",color:"#15803d",fontSize:22,marginTop:8}}>정답! 정말 잘했어요!</div>
+                    {current<problems.length-1
+                      ?<button onClick={nextProblem} style={{marginTop:16,background:"#22c55e",color:"#fff",border:"none",borderRadius:12,padding:"12px 32px",fontSize:17,cursor:"pointer",fontWeight:"bold"}}>다음 문제 →</button>
+                      :<div style={{color:"#16a34a",marginTop:12,fontWeight:"bold",fontSize:18}}>🏆 모든 문제 완료!</div>
+                    }
+                  </div>
+                )}
+                {submitted&&!allCorrect&&(
+                  <div style={{marginTop:20,background:"#fff7ed",border:"2px solid #fed7aa",borderRadius:16,padding:"16px 20px"}}>
+                    <div style={{color:"#c2410c",fontWeight:"bold",fontSize:18}}>🤔 다시 생각해볼까요?</div>
+                    <div style={{color:"#ea580c",fontSize:15,marginTop:6}}>빨간 칸을 잘 봐주세요. 선생님이 도와줄게요 →</div>
+                  </div>
+                )}
+              </div>
+
+              {/* 챗봇 패널 */}
+              {chatOpen&&(
+                <div style={{flex:"1 1 380px",background:"#fff",borderRadius:24,boxShadow:"0 4px 28px #0001",border:"1px solid #e2e8f0",display:"flex",flexDirection:"column",minHeight:480}}>
+                  <div style={{padding:"20px 24px",borderBottom:"1px solid #e2e8f0",display:"flex",alignItems:"center",gap:14}}>
+                    <div style={{width:48,height:48,borderRadius:"50%",background:"linear-gradient(135deg,#6366f1,#8b5cf6)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:26}}>🦉</div>
+                    <div>
+                      <div style={{fontWeight:"bold",color:"#1e293b",fontSize:18}}>우리 같이 생각해 볼까요? 🦉</div>
+                      <div style={{fontSize:13,color:"#22c55e",marginTop:2}}>● 지금 도와주는 중</div>
+                    </div>
+                  </div>
+                  <div style={{flex:1,overflowY:"auto",padding:20,display:"flex",flexDirection:"column",gap:14}}>
+                    {chatMsgs.length===0&&aiLoading&&(
+                      <div style={{display:"flex",gap:10}}>
+                        <span style={{fontSize:24}}>🦉</span>
+                        <div style={{background:"#f1f5f9",borderRadius:"4px 18px 18px 18px",padding:"12px 18px",color:"#94a3b8",fontSize:17}}>생각하는 중...</div>
+                      </div>
+                    )}
+                    {chatMsgs.map((m,i)=>(
+                      <div key={i} style={{display:"flex",flexDirection:m.role==="user"?"row-reverse":"row",gap:10,alignItems:"flex-end"}}>
+                        {m.role==="assistant"&&<span style={{fontSize:22}}>🦉</span>}
+                        <div style={{maxWidth:"80%",background:m.role==="user"?"linear-gradient(135deg,#3b82f6,#6366f1)":"#f1f5f9",color:m.role==="user"?"#fff":"#1e293b",borderRadius:m.role==="user"?"18px 4px 18px 18px":"4px 18px 18px 18px",padding:"13px 18px",fontSize:17,lineHeight:1.7}}>
+                          {m.content}
+                        </div>
+                      </div>
+                    ))}
+                    {aiLoading&&chatMsgs.length>0&&(
+                      <div style={{display:"flex",gap:10}}>
+                        <span style={{fontSize:22}}>🦉</span>
+                        <div style={{background:"#f1f5f9",borderRadius:"4px 18px 18px 18px",padding:"12px 18px",color:"#94a3b8",fontSize:17}}>생각하는 중...</div>
+                      </div>
+                    )}
+                    <div ref={chatEndRef}/>
+                  </div>
+                  {chatSolved?(
+                    <div style={{padding:"24px",borderTop:"1px solid #e2e8f0",textAlign:"center"}}>
+                      <div style={{fontSize:40,marginBottom:8}}>🎉</div>
+                      <div style={{fontWeight:"bold",color:"#15803d",fontSize:18,marginBottom:16}}>스스로 알아냈군요! 정말 잘했어요!</div>
+                      {current<problems.length-1
+                        ?<button onClick={nextProblem} style={{background:"#22c55e",color:"#fff",border:"none",borderRadius:14,padding:"14px 36px",fontSize:18,cursor:"pointer",fontWeight:"bold"}}>다음 문제 →</button>
+                        :<button onClick={()=>setCurrent(problems.length)} style={{background:"#3b82f6",color:"#fff",border:"none",borderRadius:14,padding:"14px 36px",fontSize:18,cursor:"pointer",fontWeight:"bold"}}>완료 🏆</button>
+                      }
+                    </div>
+                  ):(
+                    <div style={{padding:"16px 20px",borderTop:"1px solid #e2e8f0",display:"flex",gap:10}}>
+                      <input value={userMsg} onChange={e=>setUserMsg(e.target.value)}
+                        onKeyDown={e=>{if(e.key==="Enter"&&!e.isComposing)handleSend();}}
+                        placeholder="답변을 입력하세요..." disabled={aiLoading}
+                        style={{flex:1,border:"2px solid #e2e8f0",borderRadius:14,padding:"13px 18px",fontSize:17,outline:"none"}}/>
+                      <button onClick={handleSend} disabled={aiLoading||!userMsg.trim()}
+                        style={{background:aiLoading?"#e2e8f0":"linear-gradient(135deg,#3b82f6,#6366f1)",color:"#fff",border:"none",borderRadius:14,padding:"13px 20px",cursor:"pointer",fontSize:22}}>
+                        ➤
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  return null;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App));
+</script>
+</body>
+</html>
