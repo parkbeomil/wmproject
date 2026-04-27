@@ -96,7 +96,7 @@ function navigate(page) {
   document.getElementById('page-' + page).classList.add('active');
   const nav = document.getElementById('nav-' + page);
   if(nav) nav.classList.add('active');
-  const titles = {game:'AI 추천 게임', custom:'내 게임 만들기', online:'온라인 문제 풀기', offline:'사진 채점', report:'수업 기록'};
+  const titles = {game:'게임형 수업', custom:'게임형 수업', online:'사고형 수업', offline:'사고형 수업', report:'수업 리포트'};
   document.getElementById('topbarTitle').textContent = titles[page] || '';
   if(page === 'report') initReport();
 }
