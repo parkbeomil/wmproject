@@ -186,6 +186,28 @@ body::after {
   text-transform: uppercase;
 }
 
+
+/* 1. 메뉴 아이템의 기본 상태(회색)와 활성 상태(흰색) 정의 */
+.nav-item {
+  color: #888888; /* 논액티브: 회색 */
+}
+
+.nav-item.active svg {
+  color: #ffffff !important; /* 액티브: 흰색 */
+}
+
+/* 2. SVG 내부 요소들이 부모(.nav-item)의 color 값을 따르도록 설정 */
+.nav-icon svg rect,
+.nav-icon svg path {
+  stroke: currentColor; /* 선 색상을 부모 색상과 동기화 */
+  fill: none;
+}
+
+.nav-icon svg circle {
+  fill: currentColor; /* 채우기 색상을 부모 색상과 동기화 */
+}
+
+
 .nav-item {
   display: flex;
   align-items: center;
