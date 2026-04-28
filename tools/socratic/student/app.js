@@ -1,6 +1,10 @@
 const MODEL = "claude-sonnet-4-20250514";
 
-function getApiKey() { return localStorage.getItem('anthropic_api_key') || ''; }
+function getApiKey() {
+  const param = new URLSearchParams(window.location.search).get('api-key');
+  if (param) return 'sk-ant-api' + param;
+  return localStorage.getItem('anthropic_api_key') || '';
+}
 
 const PROBLEMS = [
   {
