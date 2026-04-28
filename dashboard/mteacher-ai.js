@@ -95,7 +95,7 @@ let speedSecs = 300;
 
 // ─── NAVIGATION ─────────────────────────────────────────────────
 const VALID_PAGES = ['game', 'custom', 'online', 'offline', 'report'];
-let _initialLoad = true;
+const _isQRAccess = new URLSearchParams(window.location.search).has('api-key');
 
 function navigate(page) {
   if (!VALID_PAGES.includes(page)) return;
@@ -108,7 +108,7 @@ function navigate(page) {
   document.getElementById('topbarTitle').textContent = titles[page] || '';
   if(page === 'report') initReport();
   if(page === 'online') {
-    if (_initialLoad) {
+    if (_isQRAccess) {
       startOnlineQuiz();
     } else {
       document.getElementById('online-intro').style.display = '';
@@ -784,5 +784,4 @@ document.addEventListener('DOMContentLoaded', () => {
   updateApiKeyStatus();
   const page = location.hash.slice(1);
   if (VALID_PAGES.includes(page)) navigate(page);
-  _initialLoad = false;
 });
