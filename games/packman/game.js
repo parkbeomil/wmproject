@@ -382,10 +382,12 @@ function loseLife(reason) {
   updateHud();
   if (state.lives <= 0) {
     state.mode = "game-over";
-    showMessage("게임 끝", `${reason} 다시 도전해 볼까요?`, "다시 시작", () => {
-      startOverlay.classList.remove("hidden");
-      messageOverlay.classList.add("hidden");
-      state.mode = "ready";
+    showSummary(() => {
+      showMessage("게임 끝", `${reason} 다시 도전해 볼까요?`, "다시 시작", () => {
+        startOverlay.classList.remove("hidden");
+        messageOverlay.classList.add("hidden");
+        state.mode = "ready";
+      });
     });
     return;
   }
@@ -427,6 +429,40 @@ function checkEnemyCollision() {
   } else {
     loseLife("방해꾼과 부딪혔어요.");
   }
+}
+
+function getDivisors(n) {
+  const d = [];
+  for (let i = 1; i <= n; i++) if (n % i === 0) d.push(i);
+  return d;
+}
+
+function showSummary(onClose) {
+  const concept = state.numberMode === 1 ? '약수' : '배수';
+  const n = state.targetNumber;
+
+  document.getElementById('summaryConceptTitle').textContent = concept === '약수' ? '약수란?' : '배수란?';
+  document.getElementById('summaryConceptDesc').textContent = concept === '약수'
+    ? '어떤 수를 나누어 떨어지게 하는 수예요!'
+    : '어떤 수에 자연수를 곱한 수예요!';
+
+  const nums = concept === '약수'
+    ? getDivisors(n)
+    : Array.from({ length: 8 }, (_, j) => n * (j + 1));
+
+  const list = document.getElementById('summaryDivisorList');
+  list.innerHTML = '';
+  const item = document.createElement('div');
+  item.className = 'summary-item';
+  item.innerHTML = `* ${n}의 ${concept} - <span class="summary-nums">${nums.join(', ')}</span>`;
+  list.appendChild(item);
+
+  const overlay = document.getElementById('summaryOverlay');
+  overlay.classList.remove('hidden');
+  document.getElementById('summaryCloseBtn').onclick = () => {
+    overlay.classList.add('hidden');
+    if (onClose) onClose();
+  };
 }
 
 function showMessage(title, text, buttonText, onClick) {
