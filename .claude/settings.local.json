@@ -1,7 +1,20 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(git fetch *)",
+      "Bash(git pull *)",
+      "Bash(git rebase *)",
+      "Bash(git stash *)",
+      "Read(//Users/macbook/Documents/Miraen/**)",
+      "Bash(/usr/bin/mdls -name kMDItemNumberOfPages \"/Users/macbook/Documents/Miraen/미래엔_AI수학_2. 약수와 배수_2. 약수와 배수 2026-04-24.pdf\")",
+      "Bash(/usr/bin/mdls -name kMDItemNumberOfPages \"미래엔_AI수학_2. 약수와 배수_2. 약수와 배수 2026-04-24.pdf\")",
+      "Bash(node --check /Users/macbook/Documents/mirae-n-repo/wmproject/tools/socratic/app.js)",
+      "Bash(python3 -m http.server 8765)",
+      "Bash(echo \"pid=$!\")",
+      "Bash(node *)",
+      "Bash(git push *)",
+      "Bash(git config *)"
     ]
   }
 }
