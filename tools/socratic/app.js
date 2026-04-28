@@ -83,10 +83,23 @@ let aiLoading = false;
 let showAnswers = false;
 
 // ── 화면 전환 ─────────────────────────────────────────────
+const VALID_SCREENS = ['upload', 'review', 'solve', 'done'];
+
 function showScreen(id) {
   document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
   document.getElementById("screen-" + id).classList.add("active");
+  if (VALID_SCREENS.includes(id) && location.hash !== '#' + id) {
+    history.pushState(null, '', '#' + id);
+  }
 }
+
+window.addEventListener('popstate', () => {
+  const id = location.hash.slice(1) || 'upload';
+  if (VALID_SCREENS.includes(id)) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    document.getElementById("screen-" + id).classList.add("active");
+  }
+});
 
 // ── Claude API ────────────────────────────────────────────
 async function callClaude(system, messages, maxTokens = 1000) {
@@ -535,5 +548,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("btnRestart").addEventListener("click", () => { current = 0; startSolve(); });
 
-  showScreen("upload");
+  const initScreen = location.hash.slice(1);
+  showScreen(VALID_SCREENS.includes(initScreen) ? initScreen : 'upload');
 });

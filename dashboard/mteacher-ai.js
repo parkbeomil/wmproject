@@ -90,7 +90,10 @@ let speedTimer = null;
 let speedSecs = 300;
 
 // ─── NAVIGATION ─────────────────────────────────────────────────
+const VALID_PAGES = ['game', 'custom', 'online', 'offline', 'report'];
+
 function navigate(page) {
+  if (!VALID_PAGES.includes(page)) return;
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
@@ -99,7 +102,13 @@ function navigate(page) {
   const titles = {game:'게임형 수업', custom:'게임형 수업', online:'사고형 수업', offline:'사고형 수업', report:'수업 리포트'};
   document.getElementById('topbarTitle').textContent = titles[page] || '';
   if(page === 'report') initReport();
+  if (location.hash !== '#' + page) history.pushState(null, '', '#' + page);
 }
+
+window.addEventListener('popstate', () => {
+  const page = location.hash.slice(1) || 'game';
+  if (VALID_PAGES.includes(page)) navigate(page);
+});
 
 // ─── GAME SELECTION ─────────────────────────────────────────────
 function selectTile(n) {
@@ -668,4 +677,8 @@ function initReport() {
   srows.innerHTML += `<div class="student-row" style="border:none;"><span style="color:var(--text3);font-size:13px;">외 2명</span><button class="btn btn-sm" onclick="navigate('online')">전체 소크라테스 시작 →</button></div>`;
 }
 
-document.addEventListener('DOMContentLoaded', updateApiKeyStatus);
+document.addEventListener('DOMContentLoaded', () => {
+  updateApiKeyStatus();
+  const page = location.hash.slice(1);
+  if (VALID_PAGES.includes(page)) navigate(page);
+});
