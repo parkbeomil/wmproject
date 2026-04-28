@@ -95,6 +95,7 @@ let speedSecs = 300;
 
 // ─── NAVIGATION ─────────────────────────────────────────────────
 const VALID_PAGES = ['game', 'custom', 'online', 'offline', 'report'];
+let _initialLoad = true;
 
 function navigate(page) {
   if (!VALID_PAGES.includes(page)) return;
@@ -106,6 +107,16 @@ function navigate(page) {
   const titles = {game:'게임형 수업', custom:'게임형 수업', online:'사고형 수업', offline:'사고형 수업', report:'수업 리포트'};
   document.getElementById('topbarTitle').textContent = titles[page] || '';
   if(page === 'report') initReport();
+  if(page === 'online') {
+    if (_initialLoad) {
+      startOnlineQuiz();
+    } else {
+      document.getElementById('online-intro').style.display = '';
+      document.getElementById('online-quiz').style.display = 'none';
+      document.getElementById('online-result').style.display = 'none';
+      document.getElementById('online-socrates').style.display = 'none';
+    }
+  }
   if (location.hash !== '#' + page) history.pushState(null, '', '#' + page);
 }
 
@@ -733,7 +744,7 @@ async function printReport() {
 
 // ─── REPORT ─────────────────────────────────────────────────────
 function initReport() {
-  const items = ['약수의 의미','공약수 찾기','최대공약수 구하기','두 수의 관계','실생활 적용'];
+  const items = ['약수의 의미','공약수 찾기','최대공약수 구하기'];
   const rates = [92,85,58,71,64];
   const bars = document.getElementById('reportBars');
   if(!bars || bars.dataset.init) return;
@@ -773,4 +784,5 @@ document.addEventListener('DOMContentLoaded', () => {
   updateApiKeyStatus();
   const page = location.hash.slice(1);
   if (VALID_PAGES.includes(page)) navigate(page);
+  _initialLoad = false;
 });
