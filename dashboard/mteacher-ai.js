@@ -302,6 +302,17 @@ function renderSpeed() {
   });
 }
 
+// ─── CUSTOM GAME STATE ──────────────────────────────────────────
+let customGameData = null;
+
+function resetCustomGameResult() {
+  document.getElementById('cgResult').innerHTML = `
+    <div class="empty-state">
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none"><rect x="8" y="8" width="24" height="24" rx="6" stroke="#6B6560" stroke-width="1.5"/><path d="M14 20h12M20 14v12" stroke="#6B6560" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <p>조건을 설정하고<br>AI 게임 생성 버튼을 눌러보세요</p>
+    </div>`;
+}
+
 // ─── CUSTOM GAME GENERATION ─────────────────────────────────────
 async function generateGame() {
   if (!requireApiKey()) return;
@@ -322,13 +333,24 @@ async function generateGame() {
 - 제한 시간: ${time}
 ${extra ? '- 추가 요청: ' + extra : ''}
 
-다음 형식으로 응답해주세요:
-1. 게임 제목
-2. 게임 규칙 (3~4줄)
-3. 예시 문제 3개
-4. 진행 팁 (교사용)
+반드시 다음 JSON 형식으로만 응답해주세요 (다른 텍스트 없이):
+{
+  "title": "게임 제목",
+  "type": "${type}",
+  "concept": "${concept}",
+  "level": "${level}",
+  "timeLimit": "${time}",
+  "questions": [
+    {
+      "text": "문제 텍스트",
+      "options": ["선택지1", "선택지2", "선택지3"],
+      "correct": 0,
+      "explanation": "설명"
+    }
+  ]
+}
 
-초등학생이 재미있게 참여할 수 있도록 구체적으로 작성해주세요.`;
+최소 5개 이상의 문제를 생성해주세요.`;
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -336,16 +358,166 @@ ${extra ? '- 추가 요청: ' + extra : ''}
       headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
+        max_tokens: 2000,
         messages: [{ role: 'user', content: prompt }]
       })
     });
     const data = await res.json();
-    const text = data.content.map(c=>c.text||'').join('').replace(/\n/g,'<br>');
-    resultEl.innerHTML = `<div style="font-size:13px;line-height:1.8;color:var(--text);">${text}</div><div style="margin-top:16px;display:flex;gap:8px;"><button class="btn btn-teal btn-sm">이 게임으로 시작하기</button><button class="btn btn-sm">다시 생성하기</button></div>`;
+    const text = data.content.map(c=>c.text||'').join('');
+
+    try {
+      const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/```\s*([\s\S]*?)\s*```/);
+      const jsonText = jsonMatch ? jsonMatch[1] : text.trim();
+      customGameData = JSON.parse(jsonText);
+      renderCustomGamePlay(customGameData);
+    } catch(parseErr) {
+      resultEl.innerHTML = '<div style="color:var(--red);font-size:13px;">게임 데이터를 파싱할 수 없었어요. 다시 생성해주세요.</div>';
+    }
   } catch(e) {
     resultEl.innerHTML = '<div style="color:var(--red);font-size:13px;">생성 중 오류가 발생했어요. 다시 시도해주세요.</div>';
   }
+}
+
+function renderCustomGamePlay(gameData) {
+  const resultEl = document.getElementById('cgResult');
+
+  if (gameData.type === 'OX 퀴즈') {
+    renderCustomOXQuiz(gameData, resultEl);
+  } else if (gameData.type === '카드 매칭') {
+    renderCustomMatchGame(gameData, resultEl);
+  }
+}
+
+function renderCustomOXQuiz(gameData, container) {
+  let qIdx = 0;
+  let score = 0;
+
+  function showQuestion() {
+    if (qIdx >= gameData.questions.length) {
+      container.innerHTML = `
+        <div style="text-align:center;padding:24px;">
+          <div style="font-size:24px;font-weight:700;color:var(--teal);margin-bottom:8px;">${score}/${gameData.questions.length}</div>
+          <div style="font-size:14px;color:var(--text2);margin-bottom:20px;">게임 완료!</div>
+          <button class="btn btn-sm" onclick="resetCustomGameResult()">다시 하기</button>
+        </div>
+      `;
+      return;
+    }
+
+    const q = gameData.questions[qIdx];
+    container.innerHTML = `
+      <div style="margin-bottom:20px;">
+        <div style="font-size:14px;color:var(--text3);margin-bottom:8px;">문제 ${qIdx+1}/${gameData.questions.length}</div>
+        <div class="prog-bar"><div class="prog-fill prog-blue" style="width:${((qIdx+1)/gameData.questions.length)*100}%;"></div></div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:500;line-height:1.7;">${q.text}</div>
+      </div>
+      <div style="display:flex;gap:12px;margin-bottom:16px;">
+        <button class="btn btn-lg" style="flex:1;background:var(--teal-light);border-color:var(--teal);color:var(--teal);" onclick="handleCustomOX(true, ${q.correct === 0})">O</button>
+        <button class="btn btn-lg" style="flex:1;background:var(--amber-light);border-color:var(--amber);color:var(--amber);" onclick="handleCustomOX(false, ${q.correct === 1})">X</button>
+      </div>
+      <div id="customMsg" style="font-size:13px;color:var(--text2);text-align:center;"></div>
+    `;
+  }
+
+  window.handleCustomOX = function(userChoice, isCorrect) {
+    const buttons = container.querySelectorAll('.btn-lg');
+    buttons.forEach(b => b.disabled = true);
+
+    if (isCorrect) score++;
+    const msg = document.getElementById('customMsg');
+    msg.textContent = isCorrect ? '정답! +10점' : `오답. 정답: ${gameData.questions[qIdx].options[gameData.questions[qIdx].correct]}`;
+    msg.style.color = isCorrect ? 'var(--teal)' : 'var(--red)';
+
+    setTimeout(() => {
+      qIdx++;
+      showQuestion();
+    }, 1200);
+  };
+
+  showQuestion();
+}
+
+function renderCustomMatchGame(gameData, container) {
+  let qIdx = 0;
+  let score = 0;
+
+  function showQuestion() {
+    if (qIdx >= gameData.questions.length) {
+      container.innerHTML = `
+        <div style="text-align:center;padding:24px;">
+          <div style="font-size:24px;font-weight:700;color:var(--teal);margin-bottom:8px;">${score}/${gameData.questions.length}</div>
+          <div style="font-size:14px;color:var(--text2);margin-bottom:20px;">게임 완료!</div>
+          <button class="btn btn-sm" onclick="resetCustomGameResult()">다시 하기</button>
+        </div>
+      `;
+      return;
+    }
+
+    const q = gameData.questions[qIdx];
+    const shuffled = [...q.options].sort(() => Math.random() - 0.5);
+
+    container.innerHTML = `
+      <div style="margin-bottom:20px;">
+        <div style="font-size:14px;color:var(--text3);margin-bottom:8px;">문제 ${qIdx+1}/${gameData.questions.length}</div>
+        <div class="prog-bar"><div class="prog-fill prog-blue" style="width:${((qIdx+1)/gameData.questions.length)*100}%;"></div></div>
+      </div>
+      <div class="card" style="margin-bottom:20px;">
+        <div style="font-size:16px;font-weight:500;line-height:1.7;">${q.text}</div>
+      </div>
+      <div id="customGrid" style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" onclick="resetCustomMatch()">초기화</button>
+        <button class="btn btn-primary" style="flex:1;" onclick="checkCustomMatch(${q.correct})">확인</button>
+      </div>
+      <div id="customMsg" style="font-size:13px;color:var(--text2);text-align:center;margin-top:12px;"></div>
+    `;
+
+    const grid = document.getElementById('customGrid');
+    shuffled.forEach((opt, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = opt;
+      btn.style.cssText = 'padding:16px;font-weight:500;';
+      btn.onclick = function() {
+        this.classList.toggle('selected');
+        this.style.background = this.classList.contains('selected') ? 'var(--teal-light)' : '';
+        this.style.borderColor = this.classList.contains('selected') ? 'var(--teal)' : '';
+        this.style.color = this.classList.contains('selected') ? 'var(--teal)' : '';
+      };
+      grid.appendChild(btn);
+    });
+  }
+
+  window.checkCustomMatch = function(correctIdx) {
+    const q = gameData.questions[qIdx];
+    const selected = [...container.querySelectorAll('#customGrid .btn.selected')].map(b => b.textContent);
+    const isCorrect = selected.length === 1 && selected[0] === q.options[correctIdx];
+
+    if (isCorrect) score++;
+    const msg = document.getElementById('customMsg');
+    msg.textContent = isCorrect ? '정답! +10점' : `오답. 정답: ${q.options[correctIdx]}`;
+    msg.style.color = isCorrect ? 'var(--teal)' : 'var(--red)';
+
+    document.getElementById('customGrid').style.pointerEvents = 'none';
+
+    setTimeout(() => {
+      qIdx++;
+      showQuestion();
+    }, 1200);
+  };
+
+  window.resetCustomMatch = function() {
+    [...container.querySelectorAll('#customGrid .btn')].forEach(b => {
+      b.classList.remove('selected');
+      b.style.background = '';
+      b.style.borderColor = '';
+      b.style.color = '';
+    });
+  };
+
+  showQuestion();
 }
 
 // ─── ONLINE QUIZ ─────────────────────────────────────────────────
