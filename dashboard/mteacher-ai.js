@@ -112,9 +112,9 @@ function selectTile(n) {
 }
 
 const GAME_SRCS = [
-  { src: '/games/galaga/index.html', title: '수학 갤러그' },
-  { src: '/games/packman/index.html', title: '배수 팩맨' },
-  { src: '/games/mole/index.html',   title: '약수 두더지' },
+  { src: '../games/galaga/index.html', title: '수학 갤러그' },
+  { src: '../games/packman/index.html', title: '배수 팩맨' },
+  { src: '../games/mole/index.html',   title: '약수 두더지' },
 ];
 
 function startSelectedGame() {
