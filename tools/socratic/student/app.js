@@ -1,4 +1,4 @@
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-haiku-4-5-20251001";
 
 function getApiKey() {
   const param = new URLSearchParams(window.location.search).get('api-key');
@@ -368,7 +368,7 @@ function draw() {
       const disB = S.aiLoading ? " disabled" : "";
       botH =
         '<div class="chat-input-area">' +
-          '<input id="ci" placeholder="바두기한테 대답해봐..."' + disB +
+          '<input id="ci" placeholder="AI티처 한테 말해줘..."' + disB +
             ' onkeydown="if(event.keyCode===13) doSend()">' +
           '<button onclick="doSend()"' + disB + '>&#10148;</button>' +
         '</div>';
@@ -379,7 +379,7 @@ function draw() {
         '<div class="chat-header">' +
           '<div class="avatar">&#128054;</div>' +
           '<div>' +
-            '<div class="chat-name">바두기 &#128062;</div>' +
+            '<div class="chat-name">AI티처 &#128062;</div>' +
             '<div class="chat-status">&#9679; 같이 생각해 보자!</div>' +
           '</div>' +
         '</div>' +
