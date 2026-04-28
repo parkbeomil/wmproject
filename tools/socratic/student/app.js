@@ -1,4 +1,4 @@
-const MODEL = "claude-sonnet-4-20250514";
+const MODEL = "claude-haiku-4-5-20251001";
 
 function getApiKey() {
   const param = new URLSearchParams(window.location.search).get('api-key');
