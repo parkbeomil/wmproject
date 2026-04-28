@@ -168,7 +168,7 @@ function renderReview() {
       <div class="review-question">${escHtml(p.question)}</div>
       <div class="blank-rows" id="blankRows-${pi}"></div>
       <button class="btn-add-blank" data-pi="${pi}">+ 빈칸 추가</button>
-      <details>
+      <details open>
         <summary>문제 텍스트 수정</summary>
         <textarea class="question-edit" data-pi="${pi}" rows="3">${escHtml(p.question)}</textarea>
       </details>
