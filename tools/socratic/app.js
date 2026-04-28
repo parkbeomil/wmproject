@@ -32,10 +32,53 @@ function updateApiKeyStatus() {
 }
 
 // ── 프롬프트 ──────────────────────────────────────────────
-const PARSE_SYSTEM = `너는 수학 문제지 파싱 전문가야.
-PDF에서 빈칸 채우기 문제를 추출해 JSON 배열만 반환해. 마크다운 코드블록 없이 순수 JSON만.
-형식: [{"id":1,"question":"문제 텍스트, 빈칸은 ___ 로","blanks":[{"id":"b1","label":"빈칸 설명","answer":"정답"}],"hint":"힌트"}]
-규칙: 빈칸 없는 문제 제외. 빈칸 개수만큼 blanks 추가. answer는 문자열. 최대 10개. JSON 외 텍스트 출력 금지.`;
+const PARSE_SYSTEM = `너는 초등 수학 문제지 파싱 전문가야.
+PDF에서 "빈칸 채우기" 문제만 추출해서 JSON 배열로만 반환해. 마크다운 코드블록 절대 금지, 순수 JSON만.
+
+# 출력 형식
+[{
+  "id": 1,
+  "question": "문제 본문. 보기/조건/표/말풍선은 \\n 으로 줄바꿈해 풀어쓰기. 답을 쓰는 자리는 ___ 로 표기.",
+  "blanks": [
+    { "id": "p1b1", "label": "구체적 의미", "answer": "정답값" }
+  ],
+  "hint": "한 줄 힌트"
+}]
+
+# 핵심 규칙
+1. PDF 뒤쪽에 "정답 및 해설" 페이지가 있으면 반드시 참고해 answer를 채워.
+2. question 안의 ___ 개수 = blanks.length 가 반드시 일치. 빈칸은 정확히 언더바 3개(___)만 사용.
+3. 말풍선/캐릭터 대화는 "이름: 발화내용" 한 줄씩 풀어 써. (예: "유찬: 두 수의 공약수는 두 수의 최대공약수의 배수야.")
+4. 표(테이블)는 행 단위로 풀어 써. (예: "42의 약수: 1, 2, 3, 6, 7, 14, 21, 42")
+5. 답을 쓰는 줄은 "-> " 로 시작. 여러 칸 나란히 있으면 콤마로 구분.
+   (예: "-> 공약수: ___, ___, ___\\n-> 최대공약수: ___")
+6. label은 의미를 담아 구체적으로: "1번째 (가장 큼)", "최대공약수", "공약수 (작은 수)", "사탕 개수", "친구 이름" 등.
+   "빈칸1", "답1" 같이 무의미한 라벨 금지.
+7. 빈칸 0개 문제 제외. 최대 20문제.
+
+# 기호 정규화 (필수, question·answer 둘 다)
+- 원괄호 한글:  ㉠→ㄱ,  ㉡→ㄴ,  ㉢→ㄷ,  ㉣→ㄹ,  ㉤→ㅁ,  ㉥→ㅂ
+- 원숫자:       ①→1,  ②→2,  ③→3,  ④→4,  ⑤→5,  ⑥→6,  ⑦→7,  ⑧→8,  ⑨→9
+- 보기 풀어쓰기 예: "㉠ 28, 16   ㉡ 24, 36" → "ㄱ. 28, 16   ㄴ. 24, 36"
+- 객관식 풀어쓰기 예: "① 3  ② 4  ③ 7" → "1번 3  2번 4  3번 7"
+- 정답이 ③, ⑤ 였다면 → "3", "5" 로 출력.
+
+# Few-shot 예시
+[입력 PDF 1번 문제]
+"바르게 설명한 친구의 이름을 써 보세요."
+(말풍선 유찬: "두 수의 공약수는 두 수의 최대공약수의 배수야.")
+(말풍선 은정: "1은 모든 자연수의 약수야.")
+정답지 → "은정"
+
+[정답 출력]
+{
+  "id": 1,
+  "question": "바르게 설명한 친구의 이름을 써 보세요.\\n유찬: 두 수의 공약수는 두 수의 최대공약수의 배수야.\\n은정: 1은 모든 자연수의 약수야.\\n-> 바르게 설명한 친구는 ___",
+  "blanks": [{ "id": "p1b1", "label": "친구 이름", "answer": "은정" }],
+  "hint": "1이 모든 자연수의 약수가 되는지 직접 나눠 봐."
+}
+
+JSON 외 텍스트 절대 출력 금지. 코드블록 금지.`;
 
 const TUTOR_SYSTEM = `너는 초등학교 4~5학년 학생을 가르치는 친근한 수학 튜터야. 페르소나 이름은 "AI티처"야.
 말투는 편하고 따뜻하게. 마치 옆에서 알려주는 과외선선생님 느낌으로.
@@ -134,6 +177,55 @@ function parseReply(raw) {
 }
 
 // ── 파싱 ──────────────────────────────────────────────────
+const CIRCLED_NUM = "①②③④⑤⑥⑦⑧⑨";
+const CIRCLED_HAN = "㉠㉡㉢㉣㉤㉥";
+const PLAIN_HAN   = "ㄱㄴㄷㄹㅁㅂ";
+
+function normalizeSymbols(s) {
+  let out = String(s);
+  for (let i = 0; i < CIRCLED_NUM.length; i++) {
+    out = out.split(CIRCLED_NUM[i]).join(String(i + 1));
+  }
+  for (let i = 0; i < CIRCLED_HAN.length; i++) {
+    out = out.split(CIRCLED_HAN[i]).join(PLAIN_HAN[i]);
+  }
+  return out;
+}
+
+function extractAndValidate(raw) {
+  const start = raw.indexOf("["), end = raw.lastIndexOf("]");
+  if (start === -1 || end === -1) return { ok: false, reason: "JSON 배열을 찾지 못했어요." };
+
+  let parsed;
+  try { parsed = JSON.parse(raw.slice(start, end + 1)); }
+  catch (e) { return { ok: false, reason: "JSON 파싱 실패: " + e.message }; }
+
+  if (!Array.isArray(parsed) || !parsed.length)
+    return { ok: false, reason: "빈칸 채우기 문제를 찾지 못했어요." };
+
+  const issues = [];
+  parsed.forEach((p, i) => {
+    if (!p || typeof p.question !== "string" || !Array.isArray(p.blanks) || !p.blanks.length) {
+      issues.push(`문제 ${i + 1}: question/blanks 형식 오류`);
+      return;
+    }
+    // 언더바 정규화: __, ____ 등 → ___
+    p.question = p.question.replace(/_{2,}/g, "___");
+    // 기호 정규화 (모델이 빠뜨렸을 경우 안전장치)
+    p.question = normalizeSymbols(p.question);
+    p.blanks.forEach(b => { b.answer = normalizeSymbols(String(b.answer ?? "")); });
+
+    const blankCount = (p.question.match(/___/g) || []).length;
+    if (blankCount !== p.blanks.length)
+      issues.push(`문제 ${i + 1}: question의 ___ ${blankCount}개 ≠ blanks ${p.blanks.length}개`);
+    if (p.blanks.some(b => !String(b.answer).trim()))
+      issues.push(`문제 ${i + 1}: 비어있는 answer 있음 (정답 페이지를 참고했는지 확인)`);
+  });
+
+  if (issues.length) return { ok: false, reason: issues.join(" / "), parsed };
+  return { ok: true, parsed };
+}
+
 async function handleFile(file) {
   if (!file) return;
   if (!getApiKey()) {
@@ -143,18 +235,28 @@ async function handleFile(file) {
   showScreen("parsing");
   try {
     const b64 = await readFileAsBase64(file);
-    const raw = await callClaude(PARSE_SYSTEM, [{
-      role: "user",
-      content: [
-        { type: "document", source: { type: "base64", media_type: "application/pdf", data: b64 } },
-        { type: "text", text: "이 PDF에서 빈칸 채우기 문제들을 파싱해줘. 순수 JSON 배열만 반환해. 마크다운 없이." }
-      ]
-    }], 4000);
-    const start = raw.indexOf("["), end = raw.lastIndexOf("]");
-    if (start === -1 || end === -1) throw new Error("JSON을 찾지 못했어요.");
-    const parsed = JSON.parse(raw.slice(start, end + 1));
-    if (!Array.isArray(parsed) || !parsed.length) throw new Error("빈칸 채우기 문제를 찾지 못했어요.");
-    problems = parsed;
+    const userMsg = "이 PDF에서 빈칸 채우기 문제들을 파싱해줘. 정답 및 해설 페이지가 있으면 반드시 참고해서 answer를 채워. 순수 JSON 배열만 반환해. 마크다운 없이.";
+    const docContent = [
+      { type: "document", source: { type: "base64", media_type: "application/pdf", data: b64 } },
+      { type: "text", text: userMsg }
+    ];
+
+    let raw = await callClaude(PARSE_SYSTEM, [{ role: "user", content: docContent }], 4000);
+    let result = extractAndValidate(raw);
+
+    // 검증 실패 시 1회 재시도 (구체적 오류를 모델에 전달)
+    if (!result.ok) {
+      const retryMsg = `방금 답변에 다음 문제가 있어:\n${result.reason}\n\n위 항목을 모두 고쳐서 JSON 배열만 다시 출력해줘. 규칙(___ 개수=blanks.length 일치, 정답 페이지 참고, 기호 정규화)을 다시 확인해.`;
+      raw = await callClaude(PARSE_SYSTEM, [
+        { role: "user", content: docContent },
+        { role: "assistant", content: raw },
+        { role: "user", content: retryMsg }
+      ], 4000);
+      result = extractAndValidate(raw);
+    }
+
+    if (!result.ok) throw new Error(result.reason);
+    problems = result.parsed;
     renderReview();
     showScreen("review");
   } catch (e) {
