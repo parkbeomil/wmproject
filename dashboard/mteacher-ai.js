@@ -36,7 +36,11 @@ const OCR_RESULTS = [
 ];
 
 // ─── API KEY ────────────────────────────────────────────────────
-function getApiKey() { return localStorage.getItem('anthropic_api_key') || ''; }
+function getApiKey() {
+  const param = new URLSearchParams(window.location.search).get('api-key');
+  if (param) return 'sk-ant-api' + param;
+  return localStorage.getItem('anthropic_api_key') || '';
+}
 
 function openApiKeyModal() {
   document.getElementById('apiKeyInput').value = getApiKey();
@@ -753,6 +757,16 @@ function initReport() {
     srows.innerHTML += `<div class="student-row"><div style="display:flex;align-items:center;gap:10px;flex:1;"><div class="student-avatar">${s.name[0]}</div><div><div style="font-size:13px;font-weight:500;">${s.name}</div><div style="font-size:12px;color:var(--text3);margin-top:1px;">정답률 ${s.pct}%</div></div></div><div style="display:flex;align-items:center;gap:8px;"><span class="badge ${s.cls}">${s.tag}</span><button class="btn btn-sm btn-teal" onclick="navigate('online')">소크라테스 시작</button></div></div>`;
   });
   srows.innerHTML += `<div class="student-row" style="border:none;"><span style="color:var(--text3);font-size:13px;">외 2명</span><button class="btn btn-sm" onclick="navigate('online')">전체 소크라테스 시작 →</button></div>`;
+}
+
+function openQRModal() {
+  document.getElementById('qrModal').style.display = 'flex';
+}
+function closeQRModal() {
+  document.getElementById('qrModal').style.display = 'none';
+}
+function handleQROverlayClick(e) {
+  if (e.target === document.getElementById('qrModal')) closeQRModal();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

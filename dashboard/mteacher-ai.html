@@ -452,6 +452,7 @@
             </div>
           </div>
           <button class="btn btn-primary btn-lg" onclick="startOnlineQuiz()">문제 풀기 시작</button>
+          <button class="btn btn-info btn-lg" onclick="openQRModal()">QR 코드 공유하기</button>
         </div>
 
         <!-- 문제 풀이 -->
@@ -716,6 +717,16 @@
       <button class="modal-close" onclick="closeGalagaModal()">✕</button>
     </div>
     <iframe id="galagaFrame" src="" frameborder="0" allowfullscreen></iframe>
+  </div>
+</div>
+
+<!-- ── QR CODE MODAL ── -->
+<div id="qrModal" class="modal-overlay" style="display:none" onclick="handleQROverlayClick(event)">
+  <div class="qr-modal-box">
+    <button class="modal-close qr-modal-close" onclick="closeQRModal()">✕</button>
+    <div class="qr-modal-title">QR 코드로 공유하기</div>
+    <div class="qr-modal-desc">학생들이 QR 코드를 스캔하면 바로 문제를 풀 수 있어요</div>
+    <img src="./onlineQR.png" alt="QR 코드" class="qr-modal-img">
   </div>
 </div>
 
