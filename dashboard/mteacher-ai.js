@@ -649,6 +649,13 @@ function sendChat2() {
   callSocrates2(OCR_WRONG_QS[offlineWrongIdx], text);
 }
 
+// ─── PDF PRINT ──────────────────────────────────────────────────
+function printReport() {
+  if (document.getElementById('page-report').classList.contains('active')) {
+    window.print();
+  }
+}
+
 // ─── REPORT ─────────────────────────────────────────────────────
 function initReport() {
   const items = ['약수의 의미','공약수 찾기','최대공약수 구하기','두 수의 관계','실생활 적용'];
