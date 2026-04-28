@@ -674,8 +674,12 @@ async function printReport() {
   const prevBg       = mainEl.style.background;
   mainEl.style.overflowY = 'visible';
   mainEl.style.height    = 'auto';
-  // body 배경과 동일하게 설정해 반투명 카드들이 제대로 렌더링되도록
   mainEl.style.background = 'linear-gradient(180deg, #FFF7ED 0%, #F7F1E8 100%)';
+
+  // backdrop-filter는 html2canvas가 처리 못해 반투명 흰막이 생김 → 캡처 중만 제거
+  const noBlur = document.createElement('style');
+  noBlur.textContent = '* { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }';
+  document.head.appendChild(noBlur);
 
   // 레이아웃 안정화 대기
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
@@ -714,10 +718,11 @@ async function printReport() {
     pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
     pdf.save('수업리포트.pdf');
   } finally {
-    mainEl.style.overflowY = prevOverflow;
-    mainEl.style.height    = prevHeight;
+    mainEl.style.overflowY  = prevOverflow;
+    mainEl.style.height     = prevHeight;
     mainEl.style.background = prevBg;
-    btn.style.visibility   = '';
+    noBlur.remove();
+    btn.style.visibility    = '';
     overlay.remove();
   }
 }
