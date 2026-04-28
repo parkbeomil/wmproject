@@ -650,9 +650,75 @@ function sendChat2() {
 }
 
 // ─── PDF PRINT ──────────────────────────────────────────────────
-function printReport() {
-  if (document.getElementById('page-report').classList.contains('active')) {
-    window.print();
+async function printReport() {
+  const mainEl = document.querySelector('.main');
+  const btn    = document.querySelector('.btn-pdf-save');
+
+  // 버튼 숨기기 (캡처 제외)
+  btn.style.visibility = 'hidden';
+
+  // DOM 조작 중 화면이 뿌옇게 보이는 것을 로딩 오버레이로 가림
+  const overlay = document.createElement('div');
+  overlay.style.cssText = [
+    'position:fixed', 'inset:0', 'z-index:9999',
+    'background:rgba(255,255,255,0.82)',
+    'display:flex', 'align-items:center', 'justify-content:center',
+    'font-size:15px', 'font-weight:700', 'color:#555',
+    'font-family:inherit', 'letter-spacing:-0.3px',
+  ].join(';');
+  overlay.textContent = 'PDF 저장 중...';
+  document.body.appendChild(overlay);
+
+  const prevOverflow = mainEl.style.overflowY;
+  const prevHeight   = mainEl.style.height;
+  const prevBg       = mainEl.style.background;
+  mainEl.style.overflowY = 'visible';
+  mainEl.style.height    = 'auto';
+  // body 배경과 동일하게 설정해 반투명 카드들이 제대로 렌더링되도록
+  mainEl.style.background = 'linear-gradient(180deg, #FFF7ED 0%, #F7F1E8 100%)';
+
+  // 레이아웃 안정화 대기
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  try {
+    const SCALE = 2;
+    const PAD   = 20 * SCALE; // 20px 여백 (scale 반영)
+
+    const raw = await html2canvas(mainEl, {
+      scale: SCALE,
+      useCORS: true,
+      logging: false,
+      scrollX: 0,
+      scrollY: 0,
+      width:  mainEl.scrollWidth,
+      height: mainEl.scrollHeight,
+      backgroundColor: '#FFF7ED',
+      ignoreElements: el => el === overlay,
+    });
+
+    // 20px 여백 추가
+    const padded = document.createElement('canvas');
+    padded.width  = raw.width  + PAD * 2;
+    padded.height = raw.height + PAD * 2;
+    const ctx = padded.getContext('2d');
+    ctx.fillStyle = '#F7F1E8';
+    ctx.fillRect(0, 0, padded.width, padded.height);
+    ctx.drawImage(raw, PAD, PAD);
+
+    const { jsPDF } = window.jspdf;
+    const imgData = padded.toDataURL('image/png');
+    const pdfW    = 210;
+    const pdfH    = (padded.height / padded.width) * pdfW;
+
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: [pdfW, pdfH] });
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfW, pdfH);
+    pdf.save('수업리포트.pdf');
+  } finally {
+    mainEl.style.overflowY = prevOverflow;
+    mainEl.style.height    = prevHeight;
+    mainEl.style.background = prevBg;
+    btn.style.visibility   = '';
+    overlay.remove();
   }
 }
 
