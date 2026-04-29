@@ -355,11 +355,19 @@ ${extra ? '- 추가 요청: ' + extra : ''}
   try {
     const _gamePayload = { model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] };
     console.log('%c[Claude 📤 송신] generateGame', 'color:#4A9EFF;font-weight:bold;', _gamePayload);
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify(_gamePayload)
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    let res;
+    try {
+      res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+        body: JSON.stringify(_gamePayload),
+        signal: controller.signal
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
     const data = await res.json();
     if (!res.ok) {
       console.error('API Error:', data);
@@ -379,7 +387,10 @@ ${extra ? '- 추가 요청: ' + extra : ''}
     }
   } catch(e) {
     console.error('generateGame error:', e);
-    resultEl.innerHTML = `<div style="color:var(--red);font-size:13px;">생성 중 오류가 발생했어요. 다시 시도해주세요.<br><small>${e.message}</small></div>`;
+    const msg = e.name === 'AbortError'
+      ? '응답 시간이 초과되었어요 (30초). 다시 시도해주세요.'
+      : `생성 중 오류가 발생했어요. 다시 시도해주세요.<br><small>${e.message}</small>`;
+    resultEl.innerHTML = `<div style="color:var(--red);font-size:13px;">${msg}</div>`;
   }
 }
 
