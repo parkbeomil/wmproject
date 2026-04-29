@@ -146,6 +146,7 @@ window.addEventListener('popstate', () => {
 
 // ── Claude API ────────────────────────────────────────────
 async function callClaude(system, messages, maxTokens = 1000) {
+  console.log('%c[Claude 📤 송신]', 'color:#4A9EFF;font-weight:bold;', { model: CLAUDE_MODEL, max_tokens: maxTokens, system, messages });
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -158,7 +159,9 @@ async function callClaude(system, messages, maxTokens = 1000) {
   });
   const data = await res.json();
   const block = data.content?.find(b => b.type === "text");
-  return block ? block.text : "";
+  const reply = block ? block.text : "";
+  console.log('%c[Claude 📥 수신]', 'color:#27AE60;font-weight:bold;', reply);
+  return reply;
 }
 
 function readFileAsBase64(file) {

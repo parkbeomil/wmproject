@@ -353,14 +353,12 @@ ${extra ? '- 추가 요청: ' + extra : ''}
 문제는 3개~5개 정도의 문제를 생성해주세요.`;
 
   try {
+    const _gamePayload = { model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] };
+    console.log('%c[Claude 📤 송신] generateGame', 'color:#4A9EFF;font-weight:bold;', _gamePayload);
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-api-key': getApiKey(), 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }]
-      })
+      body: JSON.stringify(_gamePayload)
     });
     const data = await res.json();
     if (!res.ok) {
@@ -369,6 +367,7 @@ ${extra ? '- 추가 요청: ' + extra : ''}
       return;
     }
     const text = data.content.map(c=>c.text||'').join('');
+    console.log('%c[Claude 📥 수신] generateGame', 'color:#27AE60;font-weight:bold;', text);
 
     try {
       const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/```\s*([\s\S]*?)\s*```/);
@@ -664,13 +663,15 @@ async function callSocrates(qi, userMsg, chatAreaId, inputId) {
 
   addBubble('...', 'ai', chatAreaId, true);
   try {
+    console.log('%c[Claude 📤 송신] 온라인채팅', 'color:#4A9EFF;font-weight:bold;', { model:'claude-sonnet-4-6', max_tokens:1000, system:sys, messages:msgs });
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':getApiKey(),'anthropic-dangerous-direct-browser-access':'true'},
+      headers:{'Content-Type':'application/json','x-api-key':getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
       body: JSON.stringify({ model:'claude-sonnet-4-6', max_tokens:1000, system:sys, messages:msgs })
     });
     const data = await res.json();
     const reply = data.content.map(c=>c.text||'').join('');
+    console.log('%c[Claude 📥 수신] 온라인채팅', 'color:#27AE60;font-weight:bold;', reply);
     removeTyping(chatAreaId);
     addBubble(reply, 'ai', chatAreaId, false);
     chatHistory.push({role:'assistant', content:reply});
@@ -819,9 +820,11 @@ async function callSocrates2(qi, userMsg) {
 
   addBubble('...','ai','chatArea2',true);
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getApiKey(),'anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:sys,messages:msgs})});
+    console.log('%c[Claude 📤 송신] 오프라인채팅', 'color:#4A9EFF;font-weight:bold;', { model:'claude-sonnet-4-6', max_tokens:1000, system:sys, messages:msgs });
+    const res = await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':getApiKey(),'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,system:sys,messages:msgs})});
     const data = await res.json();
     const reply = data.content.map(c=>c.text||'').join('');
+    console.log('%c[Claude 📥 수신] 오프라인채팅', 'color:#27AE60;font-weight:bold;', reply);
     removeTyping('chatArea2');
     addBubble(reply,'ai','chatArea2',false);
     offlineChatHistory.push({role:'assistant',content:reply});

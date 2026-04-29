@@ -154,6 +154,7 @@ function isWrongBlank(id) {
 
 // ── API 호출 ───────────────────────────────────────────────────
 function callAI(system, messages, onSuccess, onError) {
+  console.log('%c[Claude 📤 송신]', 'color:#4A9EFF;font-weight:bold;', { model: MODEL, max_tokens: 800, system: system, messages: messages });
   fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -172,7 +173,9 @@ function callAI(system, messages, onSuccess, onError) {
     .then(function(res) { return res.json(); })
     .then(function(data) {
       const block = (data.content || []).find(function(b) { return b.type === "text"; });
-      onSuccess(parseReply(block ? block.text : ""));
+      const reply = block ? block.text : "";
+      console.log('%c[Claude 📥 수신]', 'color:#27AE60;font-weight:bold;', reply);
+      onSuccess(parseReply(reply));
     })
     .catch(function(err) {
       console.error(err);
