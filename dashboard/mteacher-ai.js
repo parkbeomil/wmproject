@@ -363,6 +363,11 @@ ${extra ? '- 추가 요청: ' + extra : ''}
       })
     });
     const data = await res.json();
+    if (!res.ok) {
+      console.error('API Error:', data);
+      resultEl.innerHTML = `<div style="color:var(--red);font-size:13px;">생성 중 오류가 발생했어요. 다시 시도해주세요.<br><small>${data.error?.message || res.status}</small></div>`;
+      return;
+    }
     const text = data.content.map(c=>c.text||'').join('');
 
     try {
@@ -374,7 +379,8 @@ ${extra ? '- 추가 요청: ' + extra : ''}
       resultEl.innerHTML = '<div style="color:var(--red);font-size:13px;">게임 데이터를 파싱할 수 없었어요. 다시 생성해주세요.</div>';
     }
   } catch(e) {
-    resultEl.innerHTML = '<div style="color:var(--red);font-size:13px;">생성 중 오류가 발생했어요. 다시 시도해주세요.</div>';
+    console.error('generateGame error:', e);
+    resultEl.innerHTML = `<div style="color:var(--red);font-size:13px;">생성 중 오류가 발생했어요. 다시 시도해주세요.<br><small>${e.message}</small></div>`;
   }
 }
 
