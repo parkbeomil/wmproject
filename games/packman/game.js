@@ -307,7 +307,8 @@ function setupLevel() {
 function updateHud() {
   scoreEl.textContent = `점수 : ${String(state.score).padStart(2, "0")}`;
   const modeText = state.numberMode === 1 ? "약수" : "배수";
-  missionTextEl.textContent = `미션 : ${state.targetNumber}의 ${modeText}를 찾아보아요.`;
+  document.getElementById("missionNum").textContent = state.targetNumber;
+  document.getElementById("missionMode").textContent = modeText;
   levelEl.textContent = state.level;
   footerProgressEl.textContent = `${state.eaten}/${state.goal}`;
   livesEl.innerHTML = "";
@@ -545,7 +546,7 @@ function draw(now) {
   drawPlayer(m, now);
 
   if (state.messageUntil > now && state.mode === "playing") {
-    drawCenterText("조심!", m, "#ff3b4f");
+    drawCenterText("어이쿠!", m, "#ff3b4f");
   }
 }
 

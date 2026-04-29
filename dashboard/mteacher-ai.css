@@ -887,6 +887,8 @@ body::after {
   box-shadow: 0 6px 14px rgba(49,38,30,0.06);
 }
 
+#page-custom .card .btn {     justify-content: center; }
+
 .btn:hover { background: #fff; border-color: rgba(99,86,71,0.26); transform: translateY(-1px); }
 .btn:active { transform: scale(0.98); }
 .btn:disabled { opacity: 0.4; cursor: default; pointer-events: none; }

@@ -325,6 +325,38 @@ async function generateGame() {
   const resultEl = document.getElementById('cgResult');
   resultEl.innerHTML = '<div style="padding:24px;text-align:center;"><div style="font-size:13px;color:var(--text2);margin-bottom:12px;">AI가 게임을 생성하고 있어요...</div><div class="prog-bar"><div class="prog-fill prog-blue" style="width:100%;animation:none;"></div></div></div>';
 
+  const TYPE_FORMAT = {
+    'OX 퀴즈': `{
+  "title": "게임 제목",
+  "type": "OX 퀴즈",
+  "questions": [
+    { "text": "O 또는 X로 판단하는 수학 문장", "options": ["O","X"], "correct": 0, "explanation": "해설 (correct=0이면 O정답, 1이면 X정답)" }
+  ]
+}
+※ 문제 3~5개, correct는 0(O정답) 또는 1(X정답)`,
+    '조건에맞는 카드 찾기': `{
+  "title": "게임 제목",
+  "type": "조건에맞는 카드 찾기",
+  "questions": [
+    {
+      "text": "조건 문장 (예: 24의 약수를 모두 선택하세요)",
+      "cards": [1,2,3,4,5,6,7,8,9,10,12,16,18,24],
+      "correct": [1,2,3,4,6,8,12,24],
+      "explanation": "해설"
+    }
+  ]
+}
+※ 문제 3~5개, cards는 정답+오답 혼합 숫자 배열(12~14개), correct는 cards 안의 정답 숫자들만`,
+    '짝 맞추기': `{
+  "title": "게임 제목",
+  "type": "짝 맞추기",
+  "instruction": "각 수에 알맞은 값을 연결하세요",
+  "pairs": [
+    { "left": "왼쪽 항목 (예: 12의 최대 약수)", "right": "오른쪽 정답 (예: 6)" }
+  ]
+}
+※ pairs 4~5쌍, right 값들은 서로 달라야 함`
+  };
   const prompt = `초등학교 5학년 수학 교사입니다. 아래 조건으로 수업용 미니 게임을 설계해주세요.
 
 - 학습 목표: ${concept}
@@ -333,24 +365,8 @@ async function generateGame() {
 - 제한 시간: ${time}
 ${extra ? '- 추가 요청: ' + extra : ''}
 
-반드시 다음 JSON 형식으로만 응답해주세요 (다른 텍스트 없이):
-{
-  "title": "게임 제목",
-  "type": "${type}",
-  "concept": "${concept}",
-  "level": "${level}",
-  "timeLimit": "${time}",
-  "questions": [
-    {
-      "text": "문제 텍스트",
-      "options": ["선택지1", "선택지2", "선택지3"],
-      "correct": 0,
-      "explanation": "설명"
-    }
-  ]
-}
-
-문제는 3개~5개 정도의 문제를 생성해주세요.`;
+반드시 다음 JSON 형식으로만 응답하세요 (다른 텍스트 없이):
+${TYPE_FORMAT[type] || TYPE_FORMAT['OX 퀴즈']}`;
 
   try {
     const _gamePayload = { model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] };
@@ -396,11 +412,14 @@ ${extra ? '- 추가 요청: ' + extra : ''}
 
 function renderCustomGamePlay(gameData) {
   const resultEl = document.getElementById('cgResult');
-
   if (gameData.type === 'OX 퀴즈') {
     renderCustomOXQuiz(gameData, resultEl);
-  } else if (gameData.type === '카드 매칭') {
-    renderCustomMatchGame(gameData, resultEl);
+  } else if (gameData.type === '조건에맞는 카드 찾기') {
+    renderCustomCardFind(gameData, resultEl);
+  } else if (gameData.type === '짝 맞추기') {
+    renderCustomLineMatch(gameData, resultEl);
+  } else {
+    resultEl.innerHTML = '<div style="color:var(--red);font-size:13px;">지원하지 않는 게임 유형입니다. 다시 생성해주세요.</div>';
   }
 }
 
@@ -534,6 +553,184 @@ function renderCustomMatchGame(gameData, container) {
   };
 
   showQuestion();
+}
+
+// ─── CUSTOM: 조건에맞는 카드 찾기 ───────────────────────────────────
+function renderCustomCardFind(gameData, container) {
+  let qIdx = 0, score = 0;
+
+  function showQuestion() {
+    if (qIdx >= gameData.questions.length) {
+      container.innerHTML = `
+        <div style="text-align:center;padding:24px;">
+          <div style="font-size:24px;font-weight:700;color:var(--teal);margin-bottom:8px;">${score}/${gameData.questions.length}</div>
+          <div style="font-size:14px;color:var(--text2);margin-bottom:20px;">게임 완료!</div>
+          <button class="btn btn-sm" onclick="resetCustomGameResult()">다시 하기</button>
+        </div>`;
+      return;
+    }
+    const q = gameData.questions[qIdx];
+    const shuffled = [...q.cards].sort(() => Math.random() - 0.5);
+    const correctSet = new Set(q.correct.map(String));
+    const selected = new Set();
+
+    container.innerHTML = `
+      <div style="margin-bottom:16px;">
+        <div style="font-size:13px;color:var(--text3);margin-bottom:6px;">문제 ${qIdx+1}/${gameData.questions.length}</div>
+        <div class="prog-bar"><div class="prog-fill prog-blue" style="width:${((qIdx+1)/gameData.questions.length)*100}%;"></div></div>
+      </div>
+      <div class="card" style="margin-bottom:14px;">
+        <div style="font-size:15px;font-weight:500;line-height:1.7;">${q.text}</div>
+      </div>
+      <div id="cfGrid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;"></div>
+      <div style="display:flex;gap:8px;">
+        <button class="btn" id="cfReset">초기화</button>
+        <button class="btn btn-primary" style="flex:1;" id="cfCheck">확인</button>
+      </div>
+      <div id="cfMsg" style="font-size:13px;text-align:center;margin-top:10px;min-height:18px;"></div>
+    `;
+
+    const grid = document.getElementById('cfGrid');
+    shuffled.forEach(n => {
+      const key = String(n);
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = n;
+      btn.dataset.key = key;
+      btn.style.cssText = 'padding:14px 4px;font-size:15px;font-weight:700;';
+      btn.addEventListener('click', function() {
+        if (selected.has(key)) { selected.delete(key); this.style.background=this.style.borderColor=this.style.color=''; }
+        else { selected.add(key); this.style.background='var(--teal-light)'; this.style.borderColor='var(--teal)'; this.style.color='var(--teal)'; }
+      });
+      grid.appendChild(btn);
+    });
+
+    document.getElementById('cfReset').addEventListener('click', () => {
+      selected.clear();
+      grid.querySelectorAll('button').forEach(b => { b.style.background=b.style.borderColor=b.style.color=''; });
+    });
+
+    document.getElementById('cfCheck').addEventListener('click', () => {
+      const allCorrect = correctSet.size===selected.size && [...selected].every(k=>correctSet.has(k));
+      grid.querySelectorAll('button').forEach(b => {
+        b.disabled = true;
+        const k = b.dataset.key, isSel = selected.has(k), isCor = correctSet.has(k);
+        if (isSel && isCor)   { b.style.background='var(--teal-light)'; b.style.borderColor='var(--teal)'; b.style.color='var(--teal)'; }
+        else if (!isSel&&isCor){ b.style.background='#fff3e0'; b.style.borderColor='var(--amber)'; b.style.color='var(--amber)'; }
+        else if (isSel&&!isCor){ b.style.background='var(--red-light)'; b.style.borderColor='var(--red)'; b.style.color='var(--red)'; }
+      });
+      if (allCorrect) score++;
+      const msg = document.getElementById('cfMsg');
+      msg.textContent = allCorrect ? '정답! 모두 맞혔어요!' : `정답: ${q.correct.join(', ')}`;
+      msg.style.color = allCorrect ? 'var(--teal)' : 'var(--red)';
+      const checkBtn = document.getElementById('cfCheck');
+      checkBtn.textContent = '다음 문제 →';
+      checkBtn.onclick = () => { qIdx++; showQuestion(); };
+      document.getElementById('cfReset').style.display = 'none';
+    });
+  }
+  showQuestion();
+}
+
+// ─── CUSTOM: 짝 맞추기 ─────────────────────────────────────────────
+function renderCustomLineMatch(gameData, container) {
+  const pairs = gameData.pairs;
+  const COLORS = ['#e53935','#1e88e5','#43a047','#fb8c00','#8e24aa'];
+  const rightShuffled = [...pairs.map(p=>p.right)].sort(()=>Math.random()-0.5);
+  let matches = {}, activeLeft = null, checked = false;
+
+  function render() {
+    const doneCount = Object.keys(matches).length;
+    container.innerHTML = `
+      <div class="card" style="margin-bottom:14px;">
+        <div style="font-size:14px;font-weight:600;">${gameData.instruction||gameData.title}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:4px;">
+          ${checked ? '' : (activeLeft===null ? '왼쪽 항목을 먼저 선택하세요' : '오른쪽에서 짝을 선택하세요')}
+          ${!checked && doneCount>0 ? `<span style="margin-left:8px;color:var(--teal);">${doneCount}/${pairs.length} 연결됨</span>` : ''}
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr auto 1fr;gap:6px;align-items:stretch;margin-bottom:14px;">
+        <div id="lmLeft" style="display:flex;flex-direction:column;gap:8px;"></div>
+        <div style="display:flex;flex-direction:column;gap:8px;justify-content:space-around;padding:4px 0;">
+          ${pairs.map((_,i)=>{
+            const matched = matches[i]!==undefined;
+            const c = matched ? COLORS[i%COLORS.length] : '#ccc';
+            return `<div style="width:20px;height:2px;background:${c};border-radius:2px;margin:auto;"></div>`;
+          }).join('')}
+        </div>
+        <div id="lmRight" style="display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+      <button class="btn btn-primary" style="width:100%;" id="lmBtn">${checked?'다시 하기':'확인'}</button>
+      <div id="lmMsg" style="font-size:13px;text-align:center;margin-top:10px;min-height:18px;"></div>
+    `;
+
+    pairs.forEach((p, i) => {
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.style.cssText = 'padding:10px 8px;font-weight:600;font-size:13px;width:100%;text-align:center;line-height:1.3;';
+      if (checked) {
+        const ok = String(matches[i]) === String(p.right);
+        btn.innerHTML = `<div>${p.left}</div>${matches[i]!==undefined?`<div style="font-size:11px;margin-top:2px;opacity:0.8;">→ ${matches[i]}</div>`:''}`;
+        btn.style.cssText += ok ? 'background:var(--teal-light);border-color:var(--teal);color:var(--teal);'
+                                 : 'background:var(--red-light);border-color:var(--red);color:var(--red);';
+        btn.disabled = true;
+      } else {
+        const c = COLORS[i%COLORS.length];
+        if (matches[i] !== undefined) {
+          btn.innerHTML = `<div>${p.left}</div><div style="font-size:11px;margin-top:2px;opacity:0.85;">→ ${matches[i]}</div>`;
+          btn.style.cssText += `background:${c}33;border-color:${c};color:${c};`;
+        } else {
+          btn.textContent = p.left;
+        }
+        if (activeLeft === i) btn.style.cssText += 'outline:2px solid #ffd700;outline-offset:2px;background:#ffd70018;';
+        btn.onclick = () => { activeLeft = activeLeft===i?null:i; render(); };
+      }
+      document.getElementById('lmLeft').appendChild(btn);
+    });
+
+    rightShuffled.forEach((val) => {
+      const matchedLi = parseInt(Object.keys(matches).find(k=>String(matches[k])===String(val))??'-1');
+      const btn = document.createElement('button');
+      btn.className = 'btn';
+      btn.textContent = val;
+      btn.style.cssText = 'padding:10px 8px;font-weight:600;font-size:13px;width:100%;text-align:center;';
+      if (checked) {
+        if (matchedLi >= 0) {
+          const ok = String(pairs[matchedLi].right) === String(val);
+          btn.style.cssText += ok ? 'background:var(--teal-light);border-color:var(--teal);color:var(--teal);'
+                                   : 'background:var(--red-light);border-color:var(--red);color:var(--red);';
+        }
+        btn.disabled = true;
+      } else {
+        if (matchedLi >= 0) {
+          const c = COLORS[matchedLi%COLORS.length];
+          btn.style.cssText += `background:${c}33;border-color:${c};color:${c};`;
+        } else if (activeLeft !== null) {
+          btn.style.cssText += 'border-color:var(--teal);';
+        }
+        btn.onclick = () => {
+          if (activeLeft === null) return;
+          Object.keys(matches).forEach(k=>{ if(String(matches[k])===String(val)) delete matches[k]; });
+          matches[activeLeft] = val; activeLeft = null; render();
+        };
+      }
+      document.getElementById('lmRight').appendChild(btn);
+    });
+
+    document.getElementById('lmBtn').onclick = () => {
+      if (checked) { matches={}; activeLeft=null; checked=false; render(); return; }
+      if (Object.keys(matches).length < pairs.length) {
+        document.getElementById('lmMsg').textContent = '모든 항목을 연결해주세요.';
+        document.getElementById('lmMsg').style.color = 'var(--amber)'; return;
+      }
+      checked = true; render();
+      const correct = pairs.filter((p,i)=>String(matches[i])===String(p.right)).length;
+      const msg = document.getElementById('lmMsg');
+      msg.textContent = correct===pairs.length ? '완벽해요! 모두 맞혔어요!' : `${correct}/${pairs.length}개 맞혔어요.`;
+      msg.style.color = correct===pairs.length ? 'var(--teal)' : 'var(--red)';
+    };
+  }
+  render();
 }
 
 // ─── ONLINE QUIZ ─────────────────────────────────────────────────
