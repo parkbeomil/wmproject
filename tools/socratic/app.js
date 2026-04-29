@@ -2,7 +2,7 @@
    수학 빈칸 채우기 튜터 – app.js
    ========================================================= */
 
-const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
+const CLAUDE_MODEL = "claude-sonnet-4-6"; //"claude-haiku-4-5-20251001";
 
 // ── API 키 (dashboard와 공유: localStorage 'anthropic_api_key') ─
 function getApiKey() { return localStorage.getItem('anthropic_api_key') || ''; }
