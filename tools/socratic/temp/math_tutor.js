@@ -1,6 +1,6 @@
 'use strict';
 
-const CLAUDE_MODEL = "claude-haiku-4-5-20251001";
+const CLAUDE_MODEL = "claude-sonnet-4-6";
 
 const PARSE_SYSTEM = [
   "너는 수학 문제지 파싱 전문가야.",
