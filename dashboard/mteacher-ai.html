@@ -390,10 +390,11 @@
               </div>
               <div style="margin-bottom:12px;">
                 <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">게임 유형</label>
-                <select id="cgType">
+                <select id="cgType" onchange="handleGameTypeChange()">
                   <option>OX 퀴즈</option>
                   <option>조건에맞는 카드 찾기</option>
                   <option>짝 맞추기</option>
+                  <option value="직접생성">직접생성</option>
                 </select>
               </div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
@@ -415,7 +416,7 @@
                 </div>
               </div>
               <div style="margin-bottom:16px;">
-                <label style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">추가 요청사항 (선택)</label>
+                <label id="cgExtraLabel" style="font-size:12px;color:var(--text2);display:block;margin-bottom:4px;">추가 요청사항 (선택)</label>
                 <textarea id="cgExtra" rows="3" placeholder="예: 3~5사이의 숫자중 해당 숫자의 배수를 고르는 게임만들어줘. 최대 5개 (예를들어 여러가지 나열된 숫자중에 그중에 1~5개 까지 고르는 식이야.)"></textarea>
               </div>
               <button class="btn btn-primary" style="width:100%;" onclick="generateGame()">

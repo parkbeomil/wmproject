@@ -346,6 +346,24 @@ function resetCustomGameResult() {
 }
 
 // ─── CUSTOM GAME GENERATION ─────────────────────────────────────
+function handleGameTypeChange() {
+  const type = document.getElementById('cgType').value;
+  const label = document.getElementById('cgExtraLabel');
+  const textarea = document.getElementById('cgExtra');
+
+  if (type === '직접생성') {
+    label.textContent = '게임 유형 설명 (필수)';
+    label.style.color = 'var(--red)';
+    textarea.placeholder = '원하는 게임 유형을 직접 설명해 주세요.\n예: 3~5사이의 숫자중 해당 숫자의 배수를 고르는 게임만들어줘. 최대 5개 (여러가지 나열된 숫자중에 그중에 1~5개 까지 고르는 식)';
+    textarea.setAttribute('required', 'required');
+  } else {
+    label.textContent = '추가 요청사항 (선택)';
+    label.style.color = 'var(--text2)';
+    textarea.placeholder = '예: 3~5사이의 숫자중 해당 숫자의 배수를 고르는 게임만들어줘. 최대 5개 (예를들어 여러가지 나열된 숫자중에 그중에 1~5개 까지 고르는 식이야.)';
+    textarea.removeAttribute('required');
+  }
+}
+
 async function generateGame() {
   if (!requireApiKey()) return;
   const concept = document.getElementById('cgConcept').value;
@@ -353,6 +371,12 @@ async function generateGame() {
   const level = document.getElementById('cgLevel').value;
   const time = document.getElementById('cgTime').value;
   const extra = document.getElementById('cgExtra').value;
+
+  if (type === '직접생성' && !extra.trim()) {
+    alert('직접생성을 선택한 경우 "게임 유형 설명"을 반드시 입력해주세요.');
+    document.getElementById('cgExtra').focus();
+    return;
+  }
 
   const resultEl = document.getElementById('cgResult');
   resultEl.innerHTML = '<div style="padding:24px;text-align:center;"><div style="font-size:13px;color:var(--text2);margin-bottom:12px;">AI가 게임을 생성하고 있어요...</div><div class="prog-bar"><div class="prog-fill prog-blue" style="width:100%;animation:none;"></div></div></div>';
@@ -389,7 +413,55 @@ async function generateGame() {
 }
 ※ pairs 4~5쌍, right 값들은 서로 달라야 함`
   };
-  const prompt = `초등학교 5학년 수학 교사입니다. 아래 조건으로 수업용 미니 게임을 설계해주세요.
+  const DIRECT_FORMAT = `아래 세 가지 형식 중 게임 설명에 가장 잘 맞는 하나를 선택해 그 형식으로만 응답하세요.
+
+[형식 A - OX 퀴즈]
+{
+  "title": "게임 제목",
+  "type": "OX 퀴즈",
+  "questions": [
+    { "text": "O 또는 X로 판단하는 수학 문장", "options": ["O","X"], "correct": 0, "explanation": "해설" }
+  ]
+}
+※ 문제 3~5개, correct는 0(O정답) 또는 1(X정답)
+
+[형식 B - 조건에맞는 카드 찾기]
+{
+  "title": "게임 제목",
+  "type": "조건에맞는 카드 찾기",
+  "questions": [
+    {
+      "text": "조건 문장",
+      "cards": [1,2,3,4,5,6,7,8,9,10,12,16,18,24],
+      "correct": [1,2,3,4,6,8,12,24],
+      "explanation": "해설"
+    }
+  ]
+}
+※ 문제 3~5개, cards는 정답+오답 혼합 숫자 배열(12~14개), correct는 정답 숫자들만
+
+[형식 C - 짝 맞추기]
+{
+  "title": "게임 제목",
+  "type": "짝 맞추기",
+  "instruction": "각 수에 알맞은 값을 연결하세요",
+  "pairs": [
+    { "left": "왼쪽 항목", "right": "오른쪽 정답" }
+  ]
+}
+※ pairs 4~5쌍, right 값들은 서로 달라야 함`;
+
+  const prompt = type === '직접생성'
+    ? `초등학교 5학년 수학 교사입니다. 아래 조건으로 수업용 미니 게임을 설계해주세요.
+
+- 학습 목표: ${concept}
+- 난이도: ${level}
+- 제한 시간: ${time}
+- 게임 유형 설명 (이 설명대로 게임을 만들어 주세요): ${extra}
+
+반드시 다음 JSON 형식 중 하나로만 응답하세요 (다른 텍스트 없이):
+${DIRECT_FORMAT}`
+    : `초등학교 5학년 수학 교사입니다. 아래 조건으로 수업용 미니 게임을 설계해주세요.
 
 - 학습 목표: ${concept}
 - 게임 유형: ${type}
