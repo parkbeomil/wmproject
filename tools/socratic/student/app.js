@@ -341,7 +341,7 @@ function draw() {
     for (let i = 0; i < S.chatMsgs.length; i++) {
       const m      = S.chatMsgs[i];
       const isUser = m.role === "user";
-      const avH    = isUser ? "" : '<div class="avatar sm">&#128054;</div>';
+      const avH    = isUser ? "" : '<div class="avatar sm">&#128105;</div>';
       bubblesH +=
         '<div class="msg-row' + (isUser ? " user" : "") + '">' +
           avH +
@@ -351,7 +351,7 @@ function draw() {
     if (S.aiLoading) {
       bubblesH +=
         '<div class="msg-row">' +
-          '<div class="avatar sm">&#128054;</div>' +
+          '<div class="avatar sm">&#128105;</div>' +
           '<div class="bubble loading">생각하는 중...</div>' +
         '</div>';
     }
@@ -380,7 +380,7 @@ function draw() {
     chatH =
       '<div class="chat-card">' +
         '<div class="chat-header">' +
-          '<div class="avatar">&#128054;</div>' +
+          '<div class="avatar">&#128105;</div>' +
           '<div>' +
             '<div class="chat-name">AI티처 &#128062;</div>' +
             '<div class="chat-status">&#9679; 같이 생각해 보자!</div>' +
