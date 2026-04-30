@@ -195,12 +195,44 @@ function normalizeSymbols(s) {
   return out;
 }
 
-function extractAndValidate(raw) {
+// JSON 문자열 값 내부에 이스케이프되지 않은 제어문자를 치환해 파싱 오류를 방지한다
+function sanitizeJson(raw) {
   const start = raw.indexOf("["), end = raw.lastIndexOf("]");
+  if (start === -1 || end === -1) return raw;
+
+  const json = raw.slice(start, end + 1);
+  let result = "";
+  let inString = false;
+  let escaped = false;
+
+  for (let i = 0; i < json.length; i++) {
+    const ch = json[i];
+
+    if (escaped) { result += ch; escaped = false; continue; }
+    if (ch === "\\") { result += ch; escaped = true; continue; }
+    if (ch === '"') { inString = !inString; result += ch; continue; }
+
+    if (inString) {
+      if (ch === "\n") { result += "\\n"; continue; }
+      if (ch === "\r") { result += "\\r"; continue; }
+      if (ch === "\t") { result += "\\t"; continue; }
+      if (ch.charCodeAt(0) < 32) {
+        result += "\\u" + ch.charCodeAt(0).toString(16).padStart(4, "0");
+        continue;
+      }
+    }
+    result += ch;
+  }
+  return raw.slice(0, start) + result + raw.slice(end + 1);
+}
+
+function extractAndValidate(raw) {
+  const sanitized = sanitizeJson(raw);
+  const start = sanitized.indexOf("["), end = sanitized.lastIndexOf("]");
   if (start === -1 || end === -1) return { ok: false, reason: "JSON 배열을 찾지 못했어요." };
 
   let parsed;
-  try { parsed = JSON.parse(raw.slice(start, end + 1)); }
+  try { parsed = JSON.parse(sanitized.slice(start, end + 1)); }
   catch (e) { return { ok: false, reason: "JSON 파싱 실패: " + e.message }; }
 
   if (!Array.isArray(parsed) || !parsed.length)
@@ -244,7 +276,7 @@ async function handleFile(file) {
       { type: "text", text: userMsg }
     ];
 
-    let raw = await callClaude(PARSE_SYSTEM, [{ role: "user", content: docContent }], 4000);
+    let raw = await callClaude(PARSE_SYSTEM, [{ role: "user", content: docContent }], 8000);
     let result = extractAndValidate(raw);
 
     // 검증 실패 시 1회 재시도 (구체적 오류를 모델에 전달)
@@ -254,7 +286,7 @@ async function handleFile(file) {
         { role: "user", content: docContent },
         { role: "assistant", content: raw },
         { role: "user", content: retryMsg }
-      ], 4000);
+      ], 8000);
       result = extractAndValidate(raw);
     }
 
