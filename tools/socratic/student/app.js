@@ -108,7 +108,7 @@ const PROBLEMS = [
 ];
 
 const TUTOR_SYSTEM =
-  "너는 초등학교 3~4학년 학생을 가르치는 친근한 수학 튜터야. 이름은 바두기야.\n" +
+  "너는 초등학교 3~4학년 학생을 가르치는 친근한 수학 튜터야. 이름은 AI티처야.\n" +
   "반말로 친근하게, 짧게(두 문장 이내), 이모지 가끔 사용.\n" +
   "절대 금지: 정답/숫자 직접 언급, 방향 암시, 개념 직접 설명, 질문 두 개 이상.\n" +
   "정답이면 칭찬 후 [STATUS:SOLVED], 아니면 질문 하나 후 [STATUS:ONGOING].\n" +
@@ -330,7 +330,7 @@ function draw() {
     resH =
       '<div class="result-ng">' +
         '<div class="rng-t">&#129300; 다시 생각해보자!</div>' +
-        '<div class="rng-s">빨간 칸을 잘 봐봐. 바두기가 도와줄게 &rarr;</div>' +
+        '<div class="rng-s">빨간 칸을 잘 봐봐. AI티처가 도와줄게 &rarr;</div>' +
       '</div>';
   }
 
@@ -371,7 +371,7 @@ function draw() {
       const disB = S.aiLoading ? " disabled" : "";
       botH =
         '<div class="chat-input-area">' +
-          '<input id="ci" placeholder="바두기한테 대답해봐..."' + disB +
+          '<input id="ci" placeholder="AI티처한테 대답해봐..."' + disB +
             ' onkeydown="if(event.keyCode===13) doSend()">' +
           '<button onclick="doSend()"' + disB + '>&#10148;</button>' +
         '</div>';
@@ -382,7 +382,7 @@ function draw() {
         '<div class="chat-header">' +
           '<div class="avatar">&#128054;</div>' +
           '<div>' +
-            '<div class="chat-name">바두기 &#128062;</div>' +
+            '<div class="chat-name">AI티처 &#128062;</div>' +
             '<div class="chat-status">&#9679; 같이 생각해 보자!</div>' +
           '</div>' +
         '</div>' +
