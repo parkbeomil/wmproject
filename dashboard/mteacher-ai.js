@@ -136,9 +136,9 @@ function selectTile(n) {
 }
 
 const GAME_SRCS = [
-  { src: '../games/galaga/index.html', title: '수학 갤러그' },
-  { src: '../games/packman/index.html', title: '배수 팩맨' },
-  { src: '../games/mole/index.html',   title: '약수 두더지' },
+  { src: '../games/galaga/index.html',  title: '수학 갤러그', qrUrl: 'https://parkbeomil.github.io/wmproject/games/galaga/index.html' },
+  { src: '../games/packman/index.html', title: '배수 팩맨',   qrUrl: 'https://parkbeomil.github.io/wmproject/games/packman/index.html' },
+  { src: '../games/mole/index.html',    title: '약수 두더지', qrUrl: 'https://parkbeomil.github.io/wmproject/games/mole/index.html' },
 ];
 
 function startSelectedGame() {
@@ -162,6 +162,38 @@ function closeGalagaModal() {
 
 function handleGalagaOverlayClick(e) {
   if(e.target === e.currentTarget) closeGalagaModal();
+}
+
+// ─── 게임 QR 코드 모달 ────────────────────────────────────────────
+function openGameQR(event, idx) {
+  event.stopPropagation(); // 타일 선택 이벤트 방지
+  const game = GAME_SRCS[idx];
+  const gameUrl = game.qrUrl;
+
+  document.getElementById('gameQRModalTitle').textContent = game.title + ' QR 코드';
+  document.getElementById('gameQRModalDesc').textContent = '모바일에서 QR 코드를 스캔하면 ' + game.title + '을(를) 바로 플레이할 수 있어요';
+
+  const qrContainer = document.getElementById('gameQRCode');
+  qrContainer.innerHTML = '';
+  new QRCode(qrContainer, {
+    text: gameUrl,
+    width: 180,
+    height: 180,
+    colorDark: '#1F1A16',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+
+  document.getElementById('gameQRModal').style.display = 'flex';
+}
+
+function closeGameQRModal() {
+  document.getElementById('gameQRModal').style.display = 'none';
+  document.getElementById('gameQRCode').innerHTML = '';
+}
+
+function handleGameQROverlayClick(e) {
+  if(e.target === e.currentTarget) closeGameQRModal();
 }
 
 function showGameList() {
