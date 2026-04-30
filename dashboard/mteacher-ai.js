@@ -413,54 +413,23 @@ async function generateGame() {
 }
 ※ pairs 4~5쌍, right 값들은 서로 달라야 함`
   };
-  const DIRECT_FORMAT = `아래 세 가지 형식 중 게임 설명에 가장 잘 맞는 하나를 선택해 그 형식으로만 응답하세요.
-
-[형식 A - OX 퀴즈]
-{
-  "title": "게임 제목",
-  "type": "OX 퀴즈",
-  "questions": [
-    { "text": "O 또는 X로 판단하는 수학 문장", "options": ["O","X"], "correct": 0, "explanation": "해설" }
-  ]
-}
-※ 문제 3~5개, correct는 0(O정답) 또는 1(X정답)
-
-[형식 B - 조건에맞는 카드 찾기]
-{
-  "title": "게임 제목",
-  "type": "조건에맞는 카드 찾기",
-  "questions": [
-    {
-      "text": "조건 문장",
-      "cards": [1,2,3,4,5,6,7,8,9,10,12,16,18,24],
-      "correct": [1,2,3,4,6,8,12,24],
-      "explanation": "해설"
-    }
-  ]
-}
-※ 문제 3~5개, cards는 정답+오답 혼합 숫자 배열(12~14개), correct는 정답 숫자들만
-
-[형식 C - 짝 맞추기]
-{
-  "title": "게임 제목",
-  "type": "짝 맞추기",
-  "instruction": "각 수에 알맞은 값을 연결하세요",
-  "pairs": [
-    { "left": "왼쪽 항목", "right": "오른쪽 정답" }
-  ]
-}
-※ pairs 4~5쌍, right 값들은 서로 달라야 함`;
-
   const prompt = type === '직접생성'
-    ? `초등학교 5학년 수학 교사입니다. 아래 조건으로 수업용 미니 게임을 설계해주세요.
+    ? `초등학교 5학년 수학 교사입니다. 아래 조건으로 수업용 미니 학습 게임을 만들어주세요.
 
 - 학습 목표: ${concept}
 - 난이도: ${level}
 - 제한 시간: ${time}
-- 게임 유형 설명 (이 설명대로 게임을 만들어 주세요): ${extra}
+- 게임 설명 (이 설명 그대로 구현해주세요): ${extra}
 
-반드시 다음 JSON 형식 중 하나로만 응답하세요 (다른 텍스트 없이):
-${DIRECT_FORMAT}`
+요구사항:
+1. HTML, CSS, JavaScript를 하나의 파일에 모두 포함한 완전 독립 실행 게임
+2. 외부 라이브러리 없이 순수 HTML/CSS/JS만 사용
+3. 게임 시작 화면 → 게임 플레이 → 게임 종료 화면 흐름 포함
+4. 전체 UI는 한국어로 표시
+5. 정답/오답 피드백 포함 (교육적 요소 유지)
+6. 화면 너비 600px 이내에서 완전히 동작하도록 레이아웃 설계
+
+반드시 \`\`\`html ... \`\`\` 코드 블록으로만 응답하세요 (설명 텍스트 없이 코드만).`
     : `초등학교 5학년 수학 교사입니다. 아래 조건으로 수업용 미니 게임을 설계해주세요.
 
 - 학습 목표: ${concept}
@@ -473,10 +442,15 @@ ${extra ? '- 추가 요청: ' + extra : ''}
 ${TYPE_FORMAT[type] || TYPE_FORMAT['OX 퀴즈']}`;
 
   try {
-    const _gamePayload = { model: 'claude-sonnet-4-6', max_tokens: 2000, messages: [{ role: 'user', content: prompt }] };
+    const isDirect = type === '직접생성';
+    const _gamePayload = {
+      model: 'claude-sonnet-4-6',
+      max_tokens: isDirect ? 8000 : 2000,
+      messages: [{ role: 'user', content: prompt }]
+    };
     console.log('%c[Claude 📤 송신] generateGame', 'color:#4A9EFF;font-weight:bold;', _gamePayload);
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => controller.abort(), isDirect ? 90000 : 30000);
     let res;
     try {
       res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -497,18 +471,38 @@ ${TYPE_FORMAT[type] || TYPE_FORMAT['OX 퀴즈']}`;
     const text = data.content.map(c=>c.text||'').join('');
     console.log('%c[Claude 📥 수신] generateGame', 'color:#27AE60;font-weight:bold;', text);
 
-    try {
-      const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/```\s*([\s\S]*?)\s*```/);
-      const jsonText = jsonMatch ? jsonMatch[1] : text.trim();
-      customGameData = JSON.parse(jsonText);
-      renderCustomGamePlay(customGameData);
-    } catch(parseErr) {
-      resultEl.innerHTML = '<div style="color:var(--red);font-size:13px;">게임 데이터를 파싱할 수 없었어요. 다시 생성해주세요.</div>';
+    if (isDirect) {
+      // HTML 코드 블록 추출
+      const htmlMatch = text.match(/```html\s*([\s\S]*?)\s*```/) || text.match(/```\s*([\s\S]*?)\s*```/);
+      const htmlContent = htmlMatch ? htmlMatch[1] : text.trim();
+      if (!htmlContent) {
+        resultEl.innerHTML = '<div style="color:var(--red);font-size:13px;">게임 코드를 추출할 수 없었어요. 다시 생성해주세요.</div>';
+        return;
+      }
+      const blob = new Blob([htmlContent], { type: 'text/html; charset=utf-8' });
+      const blobUrl = URL.createObjectURL(blob);
+      resultEl.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div style="font-size:13px;font-weight:600;">AI 직접 생성 게임</div>
+          <button class="btn btn-sm" onclick="resetCustomGameResult()">다시 만들기</button>
+        </div>
+        <iframe src="${blobUrl}" style="width:100%;height:520px;border:1px solid var(--border);border-radius:10px;background:#fff;" sandbox="allow-scripts allow-same-origin"></iframe>
+      `;
+    } else {
+      try {
+        const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/) || text.match(/```\s*([\s\S]*?)\s*```/);
+        const jsonText = jsonMatch ? jsonMatch[1] : text.trim();
+        customGameData = JSON.parse(jsonText);
+        renderCustomGamePlay(customGameData);
+      } catch(parseErr) {
+        resultEl.innerHTML = '<div style="color:var(--red);font-size:13px;">게임 데이터를 파싱할 수 없었어요. 다시 생성해주세요.</div>';
+      }
     }
   } catch(e) {
     console.error('generateGame error:', e);
+    const isDirect = type === '직접생성';
     const msg = e.name === 'AbortError'
-      ? '응답 시간이 초과되었어요 (30초). 다시 시도해주세요.'
+      ? `응답 시간이 초과되었어요 (${isDirect ? 90 : 30}초). 다시 시도해주세요.`
       : `생성 중 오류가 발생했어요. 다시 시도해주세요.<br><small>${e.message}</small>`;
     resultEl.innerHTML = `<div style="color:var(--red);font-size:13px;">${msg}</div>`;
   }
