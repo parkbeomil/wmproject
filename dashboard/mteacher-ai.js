@@ -481,12 +481,21 @@ ${TYPE_FORMAT[type] || TYPE_FORMAT['OX 퀴즈']}`;
       }
       const blob = new Blob([htmlContent], { type: 'text/html; charset=utf-8' });
       const blobUrl = URL.createObjectURL(blob);
+      // 모달로 전체 화면 표시
+      document.getElementById('galagaModalTitle').textContent = '🎮 AI 직접 생성 게임';
+      document.getElementById('galagaFrame').src = blobUrl;
+      document.getElementById('galagaModal').style.display = 'flex';
+      // 카드에는 다시 열기 버튼만 표시
       resultEl.innerHTML = `
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <div style="font-size:13px;font-weight:600;">AI 직접 생성 게임</div>
-          <button class="btn btn-sm" onclick="resetCustomGameResult()">다시 만들기</button>
+        <div style="text-align:center;padding:24px 0;">
+          <div style="font-size:32px;margin-bottom:12px;">🎮</div>
+          <div style="font-size:14px;font-weight:600;margin-bottom:6px;">게임 생성 완료!</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:20px;">전체 화면 창에서 게임이 열렸어요</div>
+          <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="document.getElementById('galagaModalTitle').textContent='🎮 AI 직접 생성 게임';document.getElementById('galagaFrame').src='${blobUrl}';document.getElementById('galagaModal').style.display='flex';">다시 열기</button>
+            <button class="btn btn-sm" onclick="resetCustomGameResult()">새 게임 만들기</button>
+          </div>
         </div>
-        <iframe src="${blobUrl}" style="width:100%;height:520px;border:1px solid var(--border);border-radius:10px;background:#fff;" sandbox="allow-scripts allow-same-origin"></iframe>
       `;
     } else {
       try {
