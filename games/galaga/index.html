@@ -75,6 +75,169 @@ const rnd    = (a,b) => a+Math.random()*(b-a);
 const rndInt = (a,b) => Math.floor(rnd(a,b+1));
 const shuffle = a=>{ for(let i=a.length-1;i>0;i--){const j=rndInt(0,i);[a[i],a[j]]=[a[j],a[i]];} return a; };
 
+// ── 사운드 시스템 ─────────────────────────────────────────────
+const SFX = (function(){
+  let _ac = null;
+  let bgmPlaying = false;
+  let bgmStop = false;
+  let bgmTimer = null;
+
+  function ac(){
+    if(!_ac) _ac = new (window.AudioContext||window.webkitAudioContext)();
+    if(_ac.state==='suspended') _ac.resume();
+    return _ac;
+  }
+
+  // 발사음 - 하강 주파수 스윕 (레이저 효과)
+  function shoot(){
+    const a=ac();
+    const osc=a.createOscillator(), g=a.createGain();
+    osc.connect(g); g.connect(a.destination);
+    osc.type='square';
+    osc.frequency.setValueAtTime(1400,a.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(200,a.currentTime+0.09);
+    g.gain.setValueAtTime(0.22,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.11);
+    osc.start(a.currentTime); osc.stop(a.currentTime+0.13);
+  }
+
+  // 폭발음 - 화이트 노이즈 버스트 (wrong: 오답 적 격파, !wrong: 정답 적 격파)
+  function explosion(wrong){
+    const a=ac();
+    const dur=wrong?0.45:0.22;
+    const len=Math.ceil(a.sampleRate*dur);
+    const buf=a.createBuffer(1,len,a.sampleRate);
+    const d=buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i]=(Math.random()*2-1)*(1-i/len);
+    const src=a.createBufferSource();
+    const flt=a.createBiquadFilter();
+    const g=a.createGain();
+    flt.type='bandpass'; flt.frequency.value=wrong?180:350; flt.Q.value=0.8;
+    src.buffer=buf;
+    src.connect(flt); flt.connect(g); g.connect(a.destination);
+    g.gain.setValueAtTime(wrong?0.5:0.38,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+dur);
+    src.start(a.currentTime);
+  }
+
+  // 플레이어 피격음 - 하강 톱니파
+  function playerHit(){
+    const a=ac();
+    const osc=a.createOscillator(), g=a.createGain();
+    osc.connect(g); g.connect(a.destination);
+    osc.type='sawtooth';
+    osc.frequency.setValueAtTime(440,a.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(55,a.currentTime+0.45);
+    g.gain.setValueAtTime(0.38,a.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,a.currentTime+0.45);
+    osc.start(a.currentTime); osc.stop(a.currentTime+0.5);
+  }
+
+  // 스테이지 클리어 징글 - C장조 상행 아르페지오
+  function stageClear(){
+    const a=ac();
+    const notes=[523,659,784,1047,1319];
+    let t=a.currentTime;
+    for(const f of notes){
+      const osc=a.createOscillator(), g=a.createGain();
+      osc.connect(g); g.connect(a.destination);
+      osc.type='square'; osc.frequency.value=f;
+      g.gain.setValueAtTime(0.28,t);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.15);
+      osc.start(t); osc.stop(t+0.17);
+      t+=0.11;
+    }
+  }
+
+  // 게임오버 징글 - 하강 반음 진행
+  function gameOver(){
+    const a=ac();
+    const notes=[440,415,392,349];
+    let t=a.currentTime;
+    for(const f of notes){
+      const osc=a.createOscillator(), g=a.createGain();
+      osc.connect(g); g.connect(a.destination);
+      osc.type='sawtooth'; osc.frequency.value=f;
+      g.gain.setValueAtTime(0.35,t);
+      g.gain.exponentialRampToValueAtTime(0.001,t+0.28);
+      osc.start(t); osc.stop(t+0.3);
+      t+=0.22;
+    }
+  }
+
+  // 전체 클리어 징글 - 상행 화음 진행
+  function winJingle(){
+    const a=ac();
+    const notes=[523,659,784,659,784,880,1047,1319,1568];
+    let t=a.currentTime;
+    for(let i=0;i<notes.length;i++){
+      const isLast=i===notes.length-1;
+      const osc=a.createOscillator(), g=a.createGain();
+      osc.connect(g); g.connect(a.destination);
+      osc.type='square'; osc.frequency.value=notes[i];
+      g.gain.setValueAtTime(0.3,t);
+      g.gain.exponentialRampToValueAtTime(0.001,t+(isLast?0.5:0.14));
+      osc.start(t); osc.stop(t+(isLast?0.52:0.16));
+      t+=isLast?0.45:0.09;
+    }
+  }
+
+  // 배경음악 - 갤러그 스타일 칩튠 행진곡 (2프레이즈 루프)
+  const MELODY=[
+    {f:659,d:0.11},{f:0,d:0.04},{f:659,d:0.11},{f:0,d:0.04},
+    {f:784,d:0.11},{f:0,d:0.04},{f:880,d:0.22},{f:0,d:0.09},
+    {f:784,d:0.11},{f:0,d:0.04},{f:659,d:0.11},{f:0,d:0.04},
+    {f:523,d:0.11},{f:0,d:0.04},{f:440,d:0.22},{f:0,d:0.14},
+    {f:659,d:0.11},{f:0,d:0.04},{f:784,d:0.11},{f:0,d:0.04},
+    {f:880,d:0.11},{f:0,d:0.04},{f:988,d:0.22},{f:0,d:0.09},
+    {f:880,d:0.11},{f:0,d:0.04},{f:784,d:0.11},{f:0,d:0.04},
+    {f:659,d:0.11},{f:0,d:0.04},{f:523,d:0.33},{f:0,d:0.18},
+    {f:1047,d:0.11},{f:0,d:0.04},{f:880,d:0.11},{f:0,d:0.04},
+    {f:784,d:0.11},{f:0,d:0.04},{f:659,d:0.22},{f:0,d:0.09},
+    {f:523,d:0.11},{f:0,d:0.04},{f:440,d:0.11},{f:0,d:0.04},
+    {f:523,d:0.11},{f:0,d:0.04},{f:659,d:0.22},{f:0,d:0.14},
+    {f:784,d:0.11},{f:0,d:0.04},{f:659,d:0.11},{f:0,d:0.04},
+    {f:523,d:0.11},{f:0,d:0.04},{f:440,d:0.22},{f:0,d:0.09},
+    {f:392,d:0.11},{f:0,d:0.04},{f:440,d:0.11},{f:0,d:0.04},
+    {f:494,d:0.11},{f:0,d:0.04},{f:523,d:0.44},{f:0,d:0.22},
+  ];
+
+  function scheduleBGM(startAt){
+    if(bgmStop) return;
+    const a=ac();
+    const mg=a.createGain();
+    mg.gain.value=0.12;
+    mg.connect(a.destination);
+    let t=startAt, total=0;
+    for(const n of MELODY){
+      if(n.f>0){
+        const osc=a.createOscillator(), g=a.createGain();
+        osc.connect(g); g.connect(mg);
+        osc.type='square'; osc.frequency.value=n.f;
+        g.gain.setValueAtTime(0.9,t);
+        g.gain.setValueAtTime(0.7,t+n.d*0.75);
+        g.gain.linearRampToValueAtTime(0,t+n.d);
+        osc.start(t); osc.stop(t+n.d+0.01);
+      }
+      t+=n.d; total+=n.d;
+    }
+    bgmTimer=setTimeout(()=>scheduleBGM(a.currentTime+0.05),(total-0.15)*1000);
+  }
+
+  function startBGM(){
+    if(bgmPlaying) return;
+    bgmPlaying=true; bgmStop=false;
+    scheduleBGM(ac().currentTime+0.1);
+  }
+
+  function stopBGM(){
+    bgmStop=true; bgmPlaying=false;
+    if(bgmTimer){clearTimeout(bgmTimer);bgmTimer=null;}
+  }
+
+  return{shoot,explosion,playerHit,stageClear,gameOver,winJingle,startBGM,stopBGM};
+})();
+
 // ── 입력 ────────────────────────────────────────────────────
 const keys={}, jp={};
 window.addEventListener('keydown',e=>{
@@ -376,11 +539,13 @@ function startLevel(){
   bannerEnd=performance.now()+2500;
   lastDescentStep=bannerEnd;
   state='playing';
+  SFX.startBGM();
 }
 
 // ── 게임 업데이트 ─────────────────────────────────────────────
 function updatePlaying(now,dt){
   if(jp['Escape']){
+    SFX.stopBGM();
     pauseSnap=ctx.getImageData(0,0,W,H);
     state='pause'; return;
   }
@@ -401,7 +566,7 @@ function updatePlaying(now,dt){
     player.move();
     if(keys['Space']){
       const b=player.shoot(now);
-      if(b) pBullets.push(b);
+      if(b){ pBullets.push(b); SFX.shoot(); }
     }
   }
 
@@ -430,6 +595,7 @@ function updatePlaying(now,dt){
         pb.alive=false; e.alive=false;
         if(e.isAvoid){
           player.lives--;
+          SFX.explosion(true);
           floats.push(new FloatText(
             `${e.num}은(는) ${levels[levelIdx].param}의 ${levels[levelIdx].concept}가 아닙니다! -1`,
             e.x,e.y-20,'#dc3737',110));
@@ -437,6 +603,7 @@ function updatePlaying(now,dt){
           if(player.lives<=0){player.lives=0;setResult('gameover');return;}
         } else {
           player.score+=10;
+          SFX.explosion(false);
           floats.push(new FloatText('+10',e.x,e.y-20,'#37d237',60));
           for(let i=0;i<14;i++) particles.push(new Particle(e.x,e.y,'#37d237'));
         }
@@ -451,6 +618,7 @@ function updatePlaying(now,dt){
     if(hits(eb.rect,player.rect)){
       eb.alive=false;
       if(player.takeHit(now)){
+        SFX.playerHit();
         floats.push(new FloatText('목숨 -1!',player.x,player.y-30,'#dc3737',80));
         for(let i=0;i<10;i++) particles.push(new Particle(player.x,player.y,'#dc3737'));
         if(player.lives<=0){player.lives=0;setResult('gameover');return;}
@@ -546,7 +714,9 @@ function showSummary(){
 function setResult(type){
   resultType=type; resultScore=player.score;
   state='result';
-  if(type==='gameover') showSummary();
+  SFX.stopBGM();
+  if(type==='gameover'){ SFX.gameOver(); showSummary(); }
+  else SFX.stageClear();
 }
 
 // ── URL 파라메터 ─────────────────────────────────────────────
@@ -589,8 +759,8 @@ function loop(t){
       break;
     case 'pause':
       drawPause(pauseSnap);
-      if(jp['Escape']) state='playing';
-      if(jp['KeyM'])   state='title';
+      if(jp['Escape']){ SFX.startBGM(); state='playing'; }
+      if(jp['KeyM'])  { SFX.stopBGM();  state='title'; }
       break;
     case 'result':
       drawResult(resultType,resultScore);
@@ -598,7 +768,7 @@ function loop(t){
         if(resultType==='clear'){
           player.x=W/2; player.y=H-65; player.invUntil=0;
           levelIdx++;
-          if(levelIdx>=3){state='win';return;}
+          if(levelIdx>=3){ SFX.winJingle(); state='win'; return; }
           levels.push(buildSingleLevel(gameConcept,randomParam()));
           startLevel();
         } else {
