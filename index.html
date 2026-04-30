@@ -75,6 +75,42 @@ section.slide.active{opacity:1;pointer-events:auto;transform:translateX(0)}
   align-items: baseline; white-space: nowrap;
 }
 #pm-stage .pm-bullet-mark { text-align: left; }
+
+/* === 발표 타이머 === */
+#presentation-timer {
+  position: fixed;
+  z-index: 50;
+  background: rgba(10, 18, 28, 0.768);
+  border: 2px solid rgba(255, 255, 255, 0.105);
+  border-radius: 10px;
+  padding: 10px 20px;
+  min-width: 110px;
+  text-align: center;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 24px rgba(0,0,0,0.55);
+  user-select: none;
+  pointer-events: none;
+}
+#timer-display {
+  display: block;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  line-height: 1;
+  transition: color 0.5s ease;
+}
+#presentation-timer.phase-grey   #timer-display { color: #474646b3; }
+#presentation-timer.phase-blue   #timer-display { color: #244c7b; }
+#presentation-timer.phase-yellow #timer-display { color: #aa8c30; }
+#presentation-timer.phase-white  #timer-display { color: #eda65f; }
+@keyframes timer-flash {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.15; }
+}
+#presentation-timer.phase-white {
+  animation: timer-flash 0.75s ease-in-out infinite;
+}
 </style>
 </head>
 <body>
@@ -2648,6 +2684,7 @@ section.slide.active{opacity:1;pointer-events:auto;transform:translateX(0)}
 </defs>
 </svg>
 <main class="deck" aria-roledescription="presentation"><div class="viewport" id="viewport"><section class="slide" data-index="0" aria-label="슬라이드 1"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-1" xlink:href="#slide-symbol-1"></use></svg></section><section class="slide" data-index="1" aria-label="슬라이드 2"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-2" xlink:href="#slide-symbol-2"></use></svg></section><section class="slide" data-index="2" aria-label="슬라이드 3"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-3" xlink:href="#slide-symbol-3"></use></svg></section><section class="slide" data-index="3" aria-label="슬라이드 4"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-4" xlink:href="#slide-symbol-4"></use></svg></section><section class="slide" data-index="4" aria-label="슬라이드 5"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-5" xlink:href="#slide-symbol-5"></use></svg></section><section class="slide" data-index="5" aria-label="슬라이드 6"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-6" xlink:href="#slide-symbol-6"></use></svg></section><section class="slide" data-index="6" aria-label="슬라이드 7"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-7" xlink:href="#slide-symbol-7"></use></svg></section><section class="slide" data-index="7" aria-label="슬라이드 8"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-8" xlink:href="#slide-symbol-8"></use></svg></section><section class="slide" data-index="8" aria-label="슬라이드 9"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-9" xlink:href="#slide-symbol-9"></use></svg></section><section class="slide" data-index="9" aria-label="슬라이드 10"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-10" xlink:href="#slide-symbol-10"></use></svg></section><section class="slide" data-index="11" aria-label="슬라이드 12"><div id="pm-container"><div id="pm-stage"></div></div></section><section class="slide" data-index="10" aria-label="슬라이드 11"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-11" xlink:href="#slide-symbol-11"></use></svg></section><section class="slide" data-index="12" aria-label="슬라이드 13"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-12" xlink:href="#slide-symbol-12"></use></svg></section><section class="slide" data-index="13" aria-label="슬라이드 14"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-13" xlink:href="#slide-symbol-13"></use></svg></section><section class="slide" data-index="14" aria-label="슬라이드 15"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-14" xlink:href="#slide-symbol-14"></use></svg></section><section class="slide" data-index="15" aria-label="슬라이드 16"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-15" xlink:href="#slide-symbol-15"></use></svg></section><section class="slide" data-index="16" aria-label="슬라이드 17"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-16" xlink:href="#slide-symbol-16"></use></svg></section><section class="slide" data-index="17" aria-label="슬라이드 18"><svg class="slide-svg" viewBox="0 0 25400 14288" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ooo="http://xml.openoffice.org/svg/export" xmlns:presentation="http://sun.com/xmlns/staroffice/presentation" xmlns:smil="http://www.w3.org/2001/SMIL20/" xmlns:anim="urn:oasis:names:tc:opendocument:xmlns:animation:1.0" xmlns:svg="urn:oasis:names:tc:opendocument:xmlns:svg-compatible:1.0"><use href="#slide-symbol-17" xlink:href="#slide-symbol-17"></use></svg></section></div><nav class="pager" id="pager" aria-label="슬라이드 페이지 이동"></nav><div class="sr-only" aria-live="polite" id="announce"></div></main>
+<div id="presentation-timer" class="phase-grey"><span id="timer-display">10:00</span></div>
 <script>
 (() => {
   const slides = Array.from(document.querySelectorAll('section.slide'));
@@ -2859,6 +2896,48 @@ section.slide.active{opacity:1;pointer-events:auto;transform:translateX(0)}
   renderPmSlide();
   scalePmStage();
   window.addEventListener('resize', scalePmStage);
+})();
+
+
+// === 발표용 카운트다운 타이머 ===
+(function() {
+  let remaining = 600; // 10분
+  const timerEl   = document.getElementById('presentation-timer');
+  const displayEl = document.getElementById('timer-display');
+
+  function getPhase(secs) {
+    if (secs >= 480) return 'phase-grey';    // 10:00 ~ 8:00
+    if (secs >= 300) return 'phase-blue';    // 7:59 ~ 5:00
+    if (secs >= 120) return 'phase-yellow';  // 4:59 ~ 2:00
+    return 'phase-white';                    // 1:59 ~ 0:00 (반짝임)
+  }
+
+  function formatTime(secs) {
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+  }
+
+  function positionTimer() {
+    const vp = document.getElementById('viewport');
+    if (!vp) return;
+    const rect = vp.getBoundingClientRect();
+    timerEl.style.top   = (rect.top  + 14) + 'px';
+    timerEl.style.right = (window.innerWidth - rect.right + 14) + 'px';
+  }
+
+  function tick() {
+    displayEl.textContent = formatTime(remaining);
+    timerEl.className = getPhase(remaining);
+    if (remaining > 0) {
+      remaining--;
+      setTimeout(tick, 1000);
+    }
+  }
+
+  window.addEventListener('resize', positionTimer);
+  requestAnimationFrame(positionTimer);
+  tick();
 })();
 
 </script>

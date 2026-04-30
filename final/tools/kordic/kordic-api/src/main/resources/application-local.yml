@@ -1,0 +1,18 @@
+spring:
+  application:
+    name: kordic-api
+
+server:
+  port: 8080
+
+claude:
+  api:
+    key: your_claude_api_key_here
+    base-url: https://api.anthropic.com
+    model: claude-sonnet-4-20250514
+    max-tokens: 1000
+
+dictionary:
+  api:
+    key: your_dict_api_key_here
+    base-url: https://stdict.korean.go.kr
