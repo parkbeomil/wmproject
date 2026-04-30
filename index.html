@@ -2922,7 +2922,7 @@ section.slide.active{opacity:1;pointer-events:auto;transform:translateX(0)}
     const vp = document.getElementById('viewport');
     if (!vp) return;
     const rect = vp.getBoundingClientRect();
-    timerEl.style.top   = (rect.top  + 14) + 'px';
+    timerEl.style.top   = (rect.top  + 14 + 60) + 'px';
     timerEl.style.right = (window.innerWidth - rect.right + 14) + 'px';
   }
 
